@@ -1,0 +1,15 @@
+**/__pycache__
+**/tmp
+
+.idea
+.vscode
+
+baselines/.idea
+baselines/.vscode
+
+result
+logs
+
+tmp*
+
+data/*.jsonl

@@ -1,0 +1,391 @@
+{
+    "dataset": {
+        "name": "leetcode",
+        "dataset_file": "data/leetcode_contest.jsonl"
+    },
+    "model": {
+        "model_type": "api",
+        "name": "qwen2.5-coder-32b",
+        "model_path": "Qwen/Qwen2.5-Coder-32B-Instruct"
+    },
+    "gen_tests": {
+        "generations": 10,
+        "temperature": 0.8,
+        "max_tokens": 1024
+    },
+    "gen_tests_eval": {
+        "tests": "gen_tests"
+    },
+    "sampling": {
+        "sampling_nums": 100,
+        "temperature": 0.8,
+        "max_tokens": 1024
+    },
+    "sampling_filtering": {
+        "codes": "sampling",
+        "max_codes": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10
+    },
+    "agreement_io": {
+        "codes": "sampling",
+        "max_codes": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10
+    },
+    "codet": {
+        "codes": "sampling",
+        "max_codes": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10
+    },
+    "mbr_exec": {
+        "codes": "sampling",
+        "max_codes": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10
+    },
+    "codet_50_5": {
+        "codes": "sampling",
+        "max_codes": 50,
+        "tests": "gen_tests",
+        "max_tests_generations": 5,
+        "max_tests_per_generation": 10
+    },
+    "codet_50": {
+        "codes": "sampling",
+        "max_codes": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 50,
+        "max_tests_per_generation": 10
+    },
+    "self_repair": {
+        "codes": "sampling",
+        "init_nums": 50,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10,
+        "max_tokens": 1024,
+        "temperature": 0.8
+    },
+    "reflexion": {
+        "iterator_rounds": 100,
+        "tests": "gen_tests",
+        "max_tests_generations": 10,
+        "max_tests_per_generation": 10,
+        "max_message_tokens": 256,
+        "max_tokens": 1024,
+        "temperature": 0.2
+    },
+
+
+    "coevod": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "codet_sqrt",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "codet_sqrt",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "cosine",
+                "start_rate": 0.0,
+                "end_rate": 1.0
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "pareto",
+                "filter_algo": "avg"
+            },
+            "fitness_function": "mix",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+
+    "coevod-p-score": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "score",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "score",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "cosine",
+                "start_rate": 0.0,
+                "end_rate": 1.0
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "pareto",
+                "filter_algo": "avg"
+            },
+            "fitness_function": "mix",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+    "coevod-p-sche": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "codet_sqrt",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "codet_sqrt",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "none",
+                "start_rate": 0.8,
+                "end_rate": 0.8
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "pareto",
+                "filter_algo": "avg"
+            },
+            "fitness_function": "mix",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+    "coevod-t-score": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "codet_sqrt",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "codet_sqrt",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "cosine",
+                "start_rate": 0.0,
+                "end_rate": 1.0
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "score",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+    "coevod-t-weighted": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "codet_sqrt",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "codet_sqrt",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "cosine",
+                "start_rate": 0.0,
+                "end_rate": 1.0
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "weighted",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+    "coevod-t-failed": {
+        "init": {
+            "use_random_prompt": true,
+            "method": "codet_sqrt",
+            "code_init_generations": 10,
+            "test_init_generations": 1
+        },
+        "code": {
+            "population_nums": 10,
+            "max_generations": 100,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "codet_sqrt",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "scheduler": {
+                "func": "cosine",
+                "start_rate": 0.0,
+                "end_rate": 1.0
+            },
+            "crossover": {
+                "selection_algo": "tournament_2"
+            },
+            "mutation": {
+                "selection_algo": "random"
+            }
+        },
+        "test": {
+            "population_nums": 10,
+            "max_generations": 10,
+            "max_tests_per_generation": 10,
+            "selection": {
+                "selection_algo": "greedy"
+            },
+            "fitness_function": "failed_rate",
+            "max_tokens": 1024,
+            "temperature": 0.8,
+            "offspring": {
+                "method": "offspring_with_feedback",
+                "generations": 1,
+                "max_feedback_tests": 50
+            }
+        }
+    },
+
+    "evolutiond": {
+        "population_nums": 10,
+        "max_generations": 100,
+        "fitness_function": "codet_sqrt",
+        "scheduler": {
+            "func": "cosine",
+            "start_rate": 0.0,
+            "end_rate": 1.0
+        },
+        "crossover": {
+            "selection_algo": "tournament_2"
+        },
+        "mutation": {
+            "selection_algo": "random"
+        },
+        "selection": {
+            "selection_algo": "greedy"
+        },
+        "init_method": "random_prompt",
+        "max_tokens": 1024,
+        "temperature": 0.8,
+        "test": {
+            "tests_dir": "gen_tests",
+            "max_generations": 10,
+            "max_tests_per_generation": 10
+        }
+    },
+    
+    "result_dir": "result/leetcode_contest/qwen2.5-coder-32b",
+    "log_dir": "logs/leetcode_contest/qwen2.5-coder-32b"
+}
