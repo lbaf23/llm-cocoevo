@@ -64,7 +64,7 @@ python submit.py \
 
 ### Other Baselines
 
-[baselines](./baselines/README.md)
+[baselines](./baselines)
 (AgentCoder, CodeCOT, INTERVENOR)
 
 
