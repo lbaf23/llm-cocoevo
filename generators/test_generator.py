@@ -33,10 +33,6 @@ def test_xxx():
 ```
 '''
 
-    # for repo_exec
-    related_program_context = '### Related Program Context'
-    related_program_context_inst = 'The following is the program context that the target function depends on. You need to write the test cases based on these dependencies.'
-
     example_program_and_coverage = '### Example Program and Coverage'
 
     pre_written_test_cases = '### Pre-Written Test Cases'
@@ -64,16 +60,6 @@ def test_xxx():
 {self.test_prefix}
 {add_block(data_args['prompt_test'])}
 '''
-        elif env_type == 'repo_exec':
-            assert data_args.__contains__('context')
-            context = data_args['context']
-            return f'''\
-{self.related_program_context}
-{self.related_program_context_inst}
-{add_block(context)}
-
-{self.function_signature_and_docstring}
-{add_block(prompt)}'''
         else:
             raise NotImplementedError
 

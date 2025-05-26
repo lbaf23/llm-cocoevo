@@ -73,7 +73,7 @@ def get_py_asserts_line_cov_feedback(
     Args:
         code: Python code
         test_cases: List of test cases
-        env_type: Type of evaluator, func, repo_exec
+        env_type: Type of evaluator, func
         data_args:
         num_process: Number of processes
         total_time_limit: Total time limit
@@ -89,13 +89,7 @@ def get_py_asserts_line_cov_feedback(
 
     code = try_format_code(code, mode='hard')
 
-    if env_type == 'repo_exec':
-        assert data_args.__contains__('check_prefix')
-        check_prefix = data_args['check_prefix']
-
-        exec_code = check_prefix + '\n\n\n' + code
-        start_line = check_prefix.count('\n') + 3
-    elif env_type == 'func':
+    if env_type == 'func':
         start_line = 0
         exec_code = code
     else:

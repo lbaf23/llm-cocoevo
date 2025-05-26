@@ -22,8 +22,6 @@ if __name__ == '__main__':
         dataset = CodeDataset('leetcode', 'data/leetcode_contest.jsonl')
     elif args.env_type == 'real_world_function':
         dataset = CodeDataset('real_world_function', 'data/real_world_function.jsonl')
-    elif args.env_type == 'repo_exec':
-        dataset = CodeDataset('repo_exec', 'data/repo_exec.jsonl')
     else:
         raise NotImplementedError
 

@@ -13,20 +13,6 @@ class CodeGenerator:
     rw_function_program_skeleton_inst = '''\
 Implement the function with a `# TODO` sign. Only write the target function that needs to be implemented, do not repeat the rest part of programs and docstrings.'''
 
-    rw_method_program_skeleton_inst = '''\
-Implement the function with a `# TODO` sign. Only write the class definition and the target method that needs to be implemented, do not repeat the rest part of programs and docstrings.
-For example:
-```python
-class TargetClass:
-    def target_method(...):
-        # Your code here
-```
-'''
-
-    # for repo_exec
-    related_program_context = '### Related Program Context'
-    related_program_context_inst = 'The following is the program context that the target function depends on. You need to write the program based on these dependencies.'
-
     new_program = '### New Program'
 
     program1 = '### Program 1'
@@ -63,24 +49,13 @@ class TargetClass:
 {self.program_skeleton}
 {add_block(prompt)}
 '''
-
-        elif env_type == 'repo_exec':
-            assert data_args.__contains__('context')
-            context = data_args['context']
-            return f'''\
-{self.related_program_context}
-{self.related_program_context_inst}
-{add_block(context)}
-
-{self.function_signature_and_docstring}
-{add_block(prompt)}'''
         else:
             raise NotImplementedError
 
     def generate(
             self,
             prompt: str,
-            env_type: str,  # func, repo_exec
+            env_type: str,
             data_args: Dict[str, Any],
             init_method: str = 'default',
             max_tokens: int = 1024,

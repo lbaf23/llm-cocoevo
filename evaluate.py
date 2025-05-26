@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_file', type=str, default='data/leetcode_contest.jsonl')
     parser.add_argument('--env_type', type=str, default='func')
     parser.add_argument('--num_process', type=int, default=5)
-    parser.add_argument('--total_time_limit', type=int, default=2)  # 2 for leetcode_contest, 4 for repo_exec
+    parser.add_argument('--total_time_limit', type=int, default=2)  # 2 for leetcode_contest
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=-1)
     args = parser.parse_args()
@@ -56,13 +56,6 @@ if __name__ == '__main__':
             }
             res = evaluate_code(code, tests, env_type='real_world', data_args=data_args, num_process=args.num_process, total_time_limit=args.total_time_limit)
             print(res)
-        elif args.env_type == 'repo_exec':
-            tests = content[i]['tests']
-            code = content[i]['solution']
-            data_args = {
-                'check_prefix': content[i]['check_prefix']
-            }
-            res = evaluate_code(code, tests, env_type='repo_exec', data_args=data_args, num_process=args.num_process, total_time_limit=args.total_time_limit, feedback=True)
         else:
             raise NotImplementedError
 

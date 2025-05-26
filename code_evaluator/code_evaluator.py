@@ -19,7 +19,7 @@ def evaluate_code(
     Args:
         code (str):
         tests (List[str]):
-        env_type (str): 'func', 'repo_exec'
+        env_type (str): 'func'
         num_process (int): number of process to run the tests
         total_time_limit (float): total time limit for all tests
         feedback (bool):
@@ -63,17 +63,6 @@ def evaluate_code(
             test_cases=tests,
             num_process=num_process,
             total_time_limit=total_time_limit,
-        )
-    elif env_type == 'repo_exec':
-        assert data_args.__contains__('check_prefix'), f'No check_prefix given in mode repo_exec'
-        check_prefix = data_args['check_prefix']
-        code = check_prefix + '\n\n\n' + code
-        res = evaluate_py_asserts_multi_process(
-            code=code,
-            test_cases=tests,
-            total_time_limit=total_time_limit,
-            num_process=num_process,
-            feedback=feedback,
         )
     else:
         raise NotImplementedError

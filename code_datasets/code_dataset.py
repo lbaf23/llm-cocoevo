@@ -80,17 +80,5 @@ class CodeDataset:
                     'test_prefix': d['test_prefix']
                 }
             }
-        elif self.name == 'repo_exec':
-            return {
-                'index': d['index'],
-                'prompt': d['prompt'],
-                'entry_point': d['entry_point'],
-                'solution': d['solution'],
-                'tests': d['tests'],
-                'data_args': {
-                    'context': d['context'],
-                    'check_prefix': d['check_prefix'],
-                }
-            }
         else:
             raise NotImplementedError(f'self.name={self.name}')

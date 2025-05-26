@@ -16,7 +16,7 @@ def GenTests(
         env_type: str,
 ) -> None:
     """
-    sampling
+    gen tests
     """
 
     generations = run_config['generations']
