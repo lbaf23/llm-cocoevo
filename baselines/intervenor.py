@@ -1,10 +1,11 @@
 """
 INTERVENOR
 
+https://github.com/NEUIR/INTERVENOR
+
 """
 
-
-from typing import List, Tuple
+from typing import List, Dict, Tuple
 from utils import extract_code, APIModels
 import argparse
 import os
@@ -14,7 +15,7 @@ from log_utils import init_log, print_log
 from tqdm import tqdm
 
 
-def code_generation(model, prompt):
+def code_generation(model, prompt) -> Dict:
     system_prompt = 'You are expert programmer.'
     user_prompt = f'''\
 Please write the implementation of the provided function in a code block.
@@ -22,7 +23,7 @@ Please write the implementation of the provided function in a code block.
 {prompt}
 ```
 '''
-    output = model.generate_chat(
+    gen = model.generate_chat(
         [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt}
@@ -30,6 +31,9 @@ Please write the implementation of the provided function in a code block.
         temperature=0.2,
         max_tokens=1024
     )
+
+    output = gen['output']
+    tokens_conut = gen['tokens_count']
 
     print_log(f'system_prompt', system_prompt, 0)
     print_log(f'user_prompt', user_prompt, 0)
@@ -39,10 +43,13 @@ Please write the implementation of the provided function in a code block.
 
     print_log(f'extract code', output, 0)
 
-    return code
+    return {
+        'output': code,
+        'tokens_count': tokens_conut
+    }
 
 
-def cor_generation(model, prompt, buggy_code, error_message):
+def cor_generation(model, prompt, buggy_code, error_message) -> Dict:
     system_prompt = 'You are an experienced and insightful programming instructor, and you need to identify the bugs in the given code based on the error messages.'
     user_prompt = f'''\
 - buggy code:
@@ -56,7 +63,7 @@ Please check the implementation of the function and provide a method for modific
 Modification method:
 '''
     
-    output = model.generate_chat(
+    gen = model.generate_chat(
         [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt}
@@ -65,15 +72,21 @@ Modification method:
         max_tokens=256
     )
 
+    output = gen['output']
+    tokens_conut = gen['tokens_count']
+
     print_log(f'cor system_prompt', system_prompt, 0)
     print_log(f'cor user_prompt', user_prompt, 0)
     print_log(f'cor output', output, 0)
 
     cor = output.strip()
-    return cor
+    return {
+        'output': cor,
+        'tokens_count': tokens_conut
+    }
 
 
-def code_repairing(model, buggy_code, error_message, repair_method):
+def code_repairing(model, buggy_code, error_message, repair_method) -> Dict:
     system_prompt = 'You are a student assistant with excellent code repair capabilities. You can attempt to fix the bugs in the above code based on the provided error information and the method for modification. Please make sure to carefully check every potentially problematic area and make appropriate adjustments and corrections. Write your result in a code block.'
     user_prompt = f'''\
 - buggy code:
@@ -89,7 +102,7 @@ When testing the above code, errors occurred: {error_message} , some test cases 
 Correct the code:
 '''    
     
-    output = model.generate_chat(
+    gen = model.generate_chat(
         [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt}
@@ -97,6 +110,8 @@ Correct the code:
         temperature=0.2,
         max_tokens=1024
     )
+    output = gen['output']
+    tokens_count = gen['tokens_count']
 
     print_log(f'repair system_prompt', system_prompt, 0)
     print_log(f'repair user_prompt', user_prompt, 0)
@@ -106,7 +121,10 @@ Correct the code:
 
     print_log(f'extract code', code, 0)
 
-    return code
+    return {
+        'output': code,
+        'tokens_count': tokens_count
+    }
 
 
 def load_tests(file_path: str) -> List[str]:
@@ -233,22 +251,33 @@ if __name__ == '__main__':
         while r < iterator_rounds:
             if r == 0:
                 # generate 
-                code = code_generation(model, prompt)
+                gen = code_generation(model, prompt)
+                code = gen['output']
+                tokens_count = gen['tokens_count']
                 score, error_message = evaluate(code, tests)
             else:
                 assert error_message != ''
-                cor = cor_generation(
+                gen = cor_generation(
                     model,
                     prompt=prompt,
                     buggy_code=code,
                     error_message=error_message
                 )
-                code = code_repairing(
+
+                cor = gen['cor']
+                tokens_count = gen['tokens_count']
+
+                gen = code_repairing(
                     model,
                     buggy_code=code,
                     error_message=error_message,
                     repair_method=cor
                 )
+                code = gen['output']
+                tokens_count2 = gen['tokens_count']
+                tokens_count['prompt_tokens'] += tokens_count2['prompt_tokens']
+                tokens_count['completion_tokens'] += tokens_count2['completion_tokens']
+
                 score, error_message = evaluate(code, tests)
 
             result = {
@@ -257,6 +286,7 @@ if __name__ == '__main__':
                 'error_message': error_message,
                 'score': score,
                 'cor': cor,
+                'all_tokens_count': tokens_count
             }
             append_jsonl(result_file, result)
 

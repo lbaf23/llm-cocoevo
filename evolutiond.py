@@ -1,7 +1,7 @@
 import json
 from generators import CodeGenerator
 from code_evaluator import evaluate_code
-from typing import List, Dict
+from typing import Tuple, List, Dict
 from utils import read_jsonl, append_jsonl, create_or_clear_file, create_dirs, init_log
 from utils.evolution_utils import selection
 from tqdm import tqdm
@@ -48,7 +48,7 @@ def calculate_codet_reward_fitness(
 def update_code_fitness(
         code_population: List[Dict],
         fitness_function: str,
-) -> List[Dict]:
+) -> None:
     if fitness_function.startswith('codet'):
         reward_func = 'linear'
         if fitness_function.__contains__('_'):
@@ -63,7 +63,6 @@ def update_code_fitness(
     elif fitness_function == 'score':
         for c in code_population:
             c['fitness'] = c['score']
-        return code_population
     else:
         raise NotImplementedError(f'fitness function {fitness_function} not implemented')
 
@@ -107,8 +106,6 @@ def Evolution(
                 scheduler_config['start_rate'],
                 scheduler_config['end_rate']
             )
-        elif scheduler_config['func'] == 'none':
-            crossover_rate = self.scheduler_config['start_rate']
         else:
             raise NotImplementedError
 
@@ -120,12 +117,6 @@ def Evolution(
         total_gens += code_population_nums
         ir += 1
 
-    print(f'''\
-=== evo ===
-init: {code_population_nums}
-crossover: {code_crossover_nums}
-mutation: {code_mutation_nums}
-''')
 
     prompt = data['prompt']
 
@@ -148,6 +139,8 @@ mutation: {code_mutation_nums}
     td.set_description(f'''[{index}]''')
 
     while code_generations < max_generations:
+        total_tokens_count = []
+
         if r == 0:
             # init code population
             code_population = []
@@ -158,17 +151,21 @@ mutation: {code_mutation_nums}
 
                 gen = code_generator.generate(
                     prompt=prompt,
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     init_method=run_config['init_method'],
                     max_tokens=run_config['max_tokens'],
                     temperature=run_config['temperature']
                 )
+                total_tokens_count.append(gen['tokens_count'])
                 code_generations += 1
                 td.update(1)
                 code = gen['code']
                 res = evaluate_code(
                     code=code,
                     tests=tests,
-                    evaluator_type=env_type,
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     num_process=num_process,
                     total_time_limit=total_time_limit
                 )
@@ -205,16 +202,20 @@ mutation: {code_mutation_nums}
                     prompt=prompt,
                     code1=parent1['code'],
                     code2=parent2['code'],
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     max_tokens=run_config['max_tokens'],
                     temperature=run_config['temperature']
                 )
+                total_tokens_count.append(gen['tokens_count'])
                 code_generations += 1
                 td.update(1)
                 code = gen['code']
                 res = evaluate_code(
                     code=code,
                     tests=tests,
-                    evaluator_type=env_type,
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     num_process=num_process,
                     total_time_limit=total_time_limit
                 )
@@ -247,16 +248,20 @@ mutation: {code_mutation_nums}
                 gen = code_generator.generate_mutation(
                     prompt=prompt,
                     code=parent['code'],
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     max_tokens=run_config['max_tokens'],
                     temperature=run_config['temperature']
                 )
+                total_tokens_count.append(gen['tokens_count'])
                 code_generations += 1
                 td.update(1)
                 code = gen['code']
                 res = evaluate_code(
                     code=code,
                     tests=tests,
-                    evaluator_type=env_type,
+                    env_type=env_type,
+                    data_args=data['data_args'],
                     num_process=num_process,
                     total_time_limit=total_time_limit
                 )
@@ -292,6 +297,7 @@ mutation: {code_mutation_nums}
             'code_population': code_population,
             'code_offspring': code_offspring,
             'code_generations': code_generations,
+            'total_tokens_count': total_tokens_count
         })
         r += 1
 

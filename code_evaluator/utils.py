@@ -1,6 +1,6 @@
 import ast
 from multiprocessing import Process, Queue
-from typing import Tuple, Any, Callable, Dict
+from typing import List, Tuple, Any, Callable, Optional, Set, Dict
 
 
 def runner(target: Callable, args: Tuple, q: Queue):
@@ -47,6 +47,18 @@ def execute(code: str, test: str) -> Dict:
             return {'passed': False, 'reason': 'runtime_error'}
 
     return {'passed': True, 'reason': ''}
+
+
+class AssertToFunctionTransformer(ast.NodeTransformer):
+    def visit_Assert(self, node):
+        if isinstance(node.test, ast.Compare):
+            func_call = node.test.left
+        elif isinstance(node.test, ast.Call):
+            func_call = node.test
+        else:
+            return node
+    
+        return ast.Assign(targets=[ast.Name(id='function_return_value', ctx=ast.Store())], value=func_call)
 
 
 def extract_function_calls(code):

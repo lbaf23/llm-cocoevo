@@ -61,56 +61,6 @@ def evaluate(code: str, tests: List[str]) -> float:
     return score
 
 
-def evaluate_io(code: str, test_main: str, tests: List[List]) -> float:
-    if len(tests) == 0:
-        return 0.0
-
-    code = code + '\n\n\n' + args['test_main']
-
-    def execute(code: str, tests: List[List], q: Queue):
-        for test in tests:
-            test_in = test[0]
-            test_out = test[1]
-
-            str_in = StringIO(test_in + '\n')
-            str_out = StringIO()
-            sysin = sys.stdin
-            sysout = sys.stdout
-            sys.stdin = str_in
-            sys.stdout = str_out
-            code_vars = {'__name__': '__main__'}
-            try:
-                exec(code, code_vars)
-                output = str_out.getvalue()
-                output = format_output(output)
-                test_out = format_output(test_out)
-                if output != test_out:
-                    q.put(0.0)
-                    return
-            except Exception as e:
-                q.put(0.0)
-                return
-            finally:
-                sys.stdin = sysin
-                sys.stdout = sysout
-        q.put(1.0)
-
-    q = Queue()
-    p = Process(target=execute, args=(code, tests, q,))
-    p.start()
-    p.join(2.0)
-
-    try:
-        score = q.get(block=False)
-    except Exception:
-        p.terminate()
-        p.join()
-        score = 0.0
-
-    return score
-
-
-
 import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -156,12 +106,6 @@ if __name__ == '__main__':
                     code=code,
                     tests=data['tests'],
                 )
-            elif args.env_type == 'io':
-                score = evalute_io(
-                    code=code,
-                    test_main=data['test_main'],
-                    tests=data['tests_original'],
-                )
             else:
                 raise NotImplementedError
 
@@ -180,44 +124,13 @@ if __name__ == '__main__':
             passed_count += 1
         total_count += 1
 
-        if data['difficulty'].lower() == 'easy':
-            total_count_list[0] += 1
-            if passed:
-                passed_count_list[0] += 1
-        elif data['difficulty'].lower() == 'medium':
-            total_count_list[1] += 1
-            if passed:
-                passed_count_list[1] += 1
-        elif data['difficulty'].lower() == 'hard':
-            total_count_list[2] += 1
-            if passed:
-                passed_count_list[2] += 1
-        else:
-            raise NotImplementedError
-
-
     res = {
         'pass_rate': passed_count / total_count,
         'passed_count': passed_count,
         'total_count': total_count,
-        'easy': {
-            'pass_rate': passed_count_list[0] / total_count_list[0],
-            'passed_count': passed_count_list[0],
-            'total_count': total_count_list[0]
-        },
-        'medium': {
-            'pass_rate': passed_count_list[1] / total_count_list[1],
-            'passed_count': passed_count_list[1],
-            'total_count': total_count_list[1]
-        },
-        'hard': {
-            'pass_rate': passed_count_list[2] / total_count_list[2],
-            'passed_count': passed_count_list[2],
-            'total_count': total_count_list[2]
-        }
     }
     append_jsonl(submit_result_file, res)
     print(json.dumps(res, indent=4), flush=True)
 
-    print(f'''{to_str(res)}, easy: {to_str(res['easy'])}, medium: {to_str(res['medium'])}, hard: {to_str(res['hard'])}''')
+    print(f'''{to_str(res)}''')
     print('>>> save to ', submit_result_file)

@@ -1,12 +1,16 @@
 """
-Sampling+Filtering
+Sampling Val 
 
 """
 
-from utils import read_jsonl, write_jsonl, create_dirs, get_unique_tests
+from utils import read_file, read_jsonl, write_jsonl, create_dirs, get_unique_tests
+from code_datasets import CodeDataset
 from code_evaluator import evaluate_code
+from code_models import model_factory
+from typing import *
 from tqdm import tqdm
 import os
+import argparse
 from running_utils import load_env
 
 
@@ -42,12 +46,16 @@ if __name__ == '__main__':
         codes = read_jsonl(os.path.join(codes_dir, f'result_{i}.jsonl'))
         codes = codes[ : max_codes]
 
+        data = dataset.get_data(i)
+        data_args = data['data_args']
+
         for c in tqdm(codes, desc=f'[{i}]'):
             code = c['code']
             res = evaluate_code(
-                code,
-                tests,
-                evaluator_type=args.env_type,
+                code=code,
+                tests=tests,
+                env_type=args.env_type,
+                data_args=data_args,
                 num_process=args.num_process,
                 total_time_limit=args.total_time_limit
             )

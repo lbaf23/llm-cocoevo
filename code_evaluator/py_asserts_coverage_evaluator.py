@@ -1,4 +1,4 @@
-from typing import List, Dict, Set, Union
+from typing import List, Dict, Set, Union, Any
 import multiprocessing
 from multiprocessing import Pool, Queue
 from utils import try_format_code, StdUtils
@@ -61,26 +61,45 @@ def cover(id: int, code: str, test: str, q: Queue) -> None:
     q.put({'id': id, 'passed': passed, 'covered_lines': trace_lines, 'reason': reason})
 
 
-def get_line_cov_feedback(
+def get_py_asserts_line_cov_feedback(
         code: str,
         test_cases: List[str],
-        evaluator_type: str = 'func',
+        env_type: str,
+        data_args: Dict[str, Any],
         num_process: int = 5,
-        total_time_limit: float = 2.0
+        total_time_limit: float = 2.0,
 ) -> Dict[str, Union[str, float]]:
     """
     Args:
         code: Python code
         test_cases: List of test cases
-        evaluator_type: Type of evaluator
+        env_type: Type of evaluator, func, repo_exec
+        data_args:
         num_process: Number of processes
         total_time_limit: Total time limit
 
     Returns:
         Dict[str, Union[str, float]]: Coverage and feedback
+            {
+                "coverage":
+                "feedback":
+            }
 
     """
+
     code = try_format_code(code, mode='hard')
+
+    if env_type == 'repo_exec':
+        assert data_args.__contains__('check_prefix')
+        check_prefix = data_args['check_prefix']
+
+        exec_code = check_prefix + '\n\n\n' + code
+        start_line = check_prefix.count('\n') + 3
+    elif env_type == 'func':
+        start_line = 0
+        exec_code = code
+    else:
+        raise NotImplementedError(f'No such env_type: {env_type}')
 
     total = len(test_cases)
 
@@ -94,7 +113,7 @@ def get_line_cov_feedback(
 
         pool_res = pool.starmap_async(
             cover,
-            [(i, code, test_cases[i], q) for i in range(total)],
+            [(i, exec_code, test_cases[i], q) for i in range(total)],
         )
 
         results = {}
@@ -113,11 +132,11 @@ def get_line_cov_feedback(
         covered_lines = set()
         for res in results.values():
             for line in res['covered_lines']:
-                covered_lines.add(line)
+                if line >= start_line:
+                    covered_lines.add(line - start_line)
 
     else:
         covered_lines = set()
-
 
     # calculate line coverage
     lines = code.split('\n')

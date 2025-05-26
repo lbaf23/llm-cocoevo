@@ -1,17 +1,22 @@
+"""
+Reflexion
+
+"""
+
 from generators import CodeGenerator
 from code_evaluator import evaluate_code
-from typing import Dict, List
-from utils import read_jsonl, append_jsonl, create_or_clear_file, get_unique_tests, get_codes, create_dirs, init_log
+from typing import Dict, List, Any
+from utils import read_jsonl, append_jsonl, print_log, create_or_clear_file, write_jsonl, get_unique_tests, get_codes, \
+    create_dirs, init_log
 from tqdm import tqdm
 import os
 from running_utils import load_env
 
 
-def SelfRepair(
+def Reflexion(
         index: int,
         code_generator: CodeGenerator,
         data: Dict,
-        codes: List[str],
         tests: List[str],
         result_file: str,
         log_file: str,
@@ -21,65 +26,42 @@ def SelfRepair(
         total_time_limit: float
 ) -> None:
     max_tokens = run_config['max_tokens']
+    max_message_tokens = run_config['max_message_tokens']
     temperature = run_config['temperature']
 
-    init_nums = run_config['init_nums']
-
-    assert len(codes) >= init_nums, f'len(codes) >= init_nums'
-    codes = codes[ : init_nums]
+    iterator_rounds = run_config['iterator_rounds']
 
     prompt = data['prompt']
+    data_args = data['data_args']
 
     r = 0
-    init_items = []
+    history = None
+    item = None
 
     # load result
     result = read_jsonl(result_file)
     if len(result) > 0:
         r = result[-1]['r'] + 1
-        init_items = result[ : init_nums]
+        item = result[-1]
+        if len(result) > 1:
+            history = result[-2]
+
+        if item['score'] == 1.0:
+            return
     else:
         create_or_clear_file(result_file)
         create_or_clear_file(log_file)
 
-    td = tqdm(initial=r, total=init_nums * 2)
+    td = tqdm(initial=r, total=iterator_rounds)
     td.set_description(f'''[{index}]''')
 
     # init
-    while r < init_nums:
-        code = codes[r]
-        res = evaluate_code(
-            code=code,
-            tests=tests,
-            evaluator_type=env_type,
-            num_process=num_process,
-            total_time_limit=total_time_limit,
-            feedback=True
-        )
-        item = {
-            'r': r,
-            'method': 'init',
-            'code': code,
-            'score': res['score'],
-            'feedbacks': res['feedbacks'],
-            'status': res['status'],
-        }
-        init_items.append(item)
-        append_jsonl(result_file, item)
-        td.update(1)
-        r += 1
-
-
-    # repair
-    while r < init_nums * 2:
-        parent = init_items[r - init_nums]
-        if parent['score'] < 1.0:
-            code = parent['code']
-            test_feedback = parent['feedbacks'][0]['message']
-            gen = code_generator.generate_repair(
+    while r < iterator_rounds:
+        if r == 0:
+            gen = code_generator.generate(
                 prompt=prompt,
-                code=code,
-                test_feedback=test_feedback,
+                env_type=env_type,
+                data_args=data_args,
                 max_tokens=max_tokens,
                 temperature=temperature
             )
@@ -87,28 +69,60 @@ def SelfRepair(
             res = evaluate_code(
                 code=code,
                 tests=tests,
-                evaluator_type=env_type,
+                env_type=env_type,
+                data_args=data_args,
                 num_process=num_process,
                 total_time_limit=total_time_limit,
                 feedback=True
             )
-
             item = {
                 'r': r,
-                'method': 'repair',
-                'parent_index': r - init_nums,
+                'method': 'init',
                 'code': code,
-                'output': gen['output'],
                 'score': res['score'],
                 'feedbacks': res['feedbacks'],
-                'status': res['status']
+                'status': res['status'],
+                'tokens_count': gen['tokens_count']
             }
         else:
-            item = parent
+            gen = code_generator.generate_reflexion(
+                prompt=prompt,
+                item=item,
+                history=history,
+                env_type=env_type,
+                data_args=data_args,
+                max_message_tokens=max_message_tokens,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            code = gen['code']
+            res = evaluate_code(
+                code=code,
+                tests=tests,
+                env_type=env_type,
+                data_args=data_args,
+                num_process=num_process,
+                total_time_limit=total_time_limit,
+                feedback=True
+            )
+            history = item
+            item = {
+                'r': r,
+                'method': 'reflexion',
+                'code': code,
+                'reflection_message': gen['reflection_message'],
+                'score': res['score'],
+                'feedbacks': res['feedbacks'],
+                'status': res['status'],
+                'tokens_count': gen['tokens_count']
+            }
 
         append_jsonl(result_file, item)
         td.update(1)
         r += 1
+
+        if item['score'] == 1.0:
+            break
 
 
 if __name__ == '__main__':
@@ -121,7 +135,7 @@ if __name__ == '__main__':
     result_dir = env['result_dir']
     log_dir = env['log_dir']
 
-    assert run_type.startswith('self_repair'), f'run_type should start with self_repair'
+    assert run_type.startswith('reflexion'), 'The run_type must start with reflexion'
 
     model = env['model']
 
@@ -132,7 +146,6 @@ if __name__ == '__main__':
     max_tests_generations = run_config['max_tests_generations']
     max_tests_per_generation = run_config['max_tests_per_generation']
 
-    codes_dir = os.path.join(result_dir.rstrip(run_type), run_config['codes'])
     tests_dir = os.path.join(result_dir.rstrip(run_type), run_config['tests'])
     create_dirs(result_dir)
 
@@ -148,14 +161,10 @@ if __name__ == '__main__':
         tests_file = os.path.join(tests_dir, f'result_{i}.jsonl')
         tests = get_unique_tests(tests_file, max_tests_generations, max_tests_per_generation)
 
-        codes_file = (os.path.join(codes_dir, f'result_{i}.jsonl'))
-        codes = get_codes(codes_file)
-
-        SelfRepair(
+        Reflexion(
             index=i,
             code_generator=code_generator,
             data=dataset.get_data(i),
-            codes=codes,
             tests=tests,
             result_file=result_file,
             log_file=log_file,

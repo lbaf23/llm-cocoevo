@@ -5,7 +5,7 @@ from tqdm import tqdm
 import json
 from running_utils import load_env
 import random
-from typing import List
+from typing import List, Dict
 
 
 def get_k_codes(run_type: str, file_path: str, k: int) -> List[str]:
@@ -90,25 +90,14 @@ if __name__ == '__main__':
         passed_code = ''
         codes = get_k_codes(run_type, result_file, k)
         for code in codes:
-            if args.env_type == 'func':
-                res = evaluate_code(
-                    code=code,
-                    tests=data['tests'],
-                    evaluator_type=args.env_type,
-                    num_process=args.num_process,
-                    total_time_limit=args.total_time_limit
-                )
-            elif args.env_type == 'io':
-                res = evaluate_code(
-                    code=code,
-                    tests=data['tests_original'],
-                    evaluator_type=args.env_type,
-                    num_process=args.num_process,
-                    total_time_limit=args.total_time_limit,
-                    test_main=data['test_main']
-                )
-            else:
-                raise NotImplementedError(f'env_type={args.env_type} not supported')
+            res = evaluate_code(
+                code=code,
+                tests=data['tests'],
+                env_type=args.env_type,
+                data_args=data['data_args'],
+                num_process=args.num_process,
+                total_time_limit=args.total_time_limit
+            )
 
             if res['score'] == 1.0:
                 passed = True
@@ -118,6 +107,8 @@ if __name__ == '__main__':
         append_jsonl(submit_result_file, {
             'index': i,
             'passed': passed,
+            'passed_count': res['passed_count'],
+            'total_count': res['total_count'],
             'passed_code': passed_code
         })
 
@@ -125,53 +116,12 @@ if __name__ == '__main__':
             passed_count += 1
         total_count += 1
 
-        if args.env_type == 'func':
-            if data['difficulty'].lower() == 'easy':
-                total_count_list[0] += 1
-                if passed:
-                    passed_count_list[0] += 1
-            elif data['difficulty'].lower() == 'medium':
-                total_count_list[1] += 1
-                if passed:
-                    passed_count_list[1] += 1
-            elif data['difficulty'].lower() == 'hard':
-                total_count_list[2] += 1
-                if passed:
-                    passed_count_list[2] += 1
-            else:
-                raise NotImplementedError
-
-
-    if args.env_type == 'func':
-        res = {
-            'pass_rate': passed_count / total_count,
-            'passed_count': passed_count,
-            'total_count': total_count,
-            'easy': {
-                'pass_rate': passed_count_list[0] / total_count_list[0],
-                'passed_count': passed_count_list[0],
-                'total_count': total_count_list[0]
-            },
-            'medium': {
-                'pass_rate': passed_count_list[1] / total_count_list[1],
-                'passed_count': passed_count_list[1],
-                'total_count': total_count_list[1]
-            },
-            'hard': {
-                'pass_rate': passed_count_list[2] / total_count_list[2],
-                'passed_count': passed_count_list[2],
-                'total_count': total_count_list[2]
-            }
-        }
-        print(f'''{to_str(res)}, easy: {to_str(res['easy'])}, medium: {to_str(res['medium'])}, hard: {to_str(res['hard'])}''')
-
-    else:
-        res = {
-            'pass_rate': passed_count / total_count,
-            'passed_count': passed_count,
-            'total_count': total_count
-        }
-        print(f'''{to_str(res)}''')
+    res = {
+        'pass_rate': passed_count / total_count,
+        'passed_count': passed_count,
+        'total_count': total_count
+    }
+    print(f'''{to_str(res)}''')
 
     append_jsonl(submit_result_file, res)
     print(json.dumps(res, indent=4), flush=True)

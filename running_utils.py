@@ -1,4 +1,5 @@
 from utils import load_config, create_dirs
+import json
 import os
 from code_datasets import CodeDataset
 from code_models import ModelBase, model_factory
@@ -20,8 +21,10 @@ def init_cuda():
 def read_args(add_args: List[Dict] = []) -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument('--run_type', type=str, default='sampling')
-    parser.add_argument('--env_type', type=str, default='func')
-    parser.add_argument('--config', type=str, default='config.json')
+    parser.add_argument('--env_type', type=str, default='func', help='''\
+LeetCode hard: func
+''')
+    parser.add_argument('--config', type=str, default='config/config.json')
 
     parser.add_argument('--total_time_limit', type=float, default=2.0)
     parser.add_argument('--num_process', type=int, default=5, help='The number of parallel processes to use when evaluating a program.')

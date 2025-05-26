@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional, Union
+from typing import List, Dict
 
 
 class ModelBase():
@@ -8,6 +8,7 @@ class ModelBase():
     def generate_chat(
             self,
             messages: List[Dict],
+            tools: List[Dict] = [],
             stop_strs: List[str] = [],
             temperature: float = 0.8,
             max_tokens: int = 1024

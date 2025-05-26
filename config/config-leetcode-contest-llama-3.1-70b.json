@@ -60,6 +60,7 @@
         "max_tokens": 1024,
         "temperature": 0.8
     },
+
     "coevod": {
         "init": {
             "use_random_prompt": true,
@@ -100,7 +101,7 @@
             "max_tokens": 1024,
             "temperature": 0.8,
             "offspring": {
-                "method": "offspring_with_feedback",
+                "method": "population_and_feedback",
                 "generations": 1,
                 "max_feedback_tests": 50
             }

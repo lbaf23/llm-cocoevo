@@ -1,5 +1,5 @@
 import json
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 
 class CodeDataset:
@@ -48,6 +48,49 @@ class CodeDataset:
         d = self.data[i - self.start]
 
         if self.name == 'leetcode':
-            return d
+            return {
+                **d,
+                'data_args': {}
+            }
+        elif self.name == 'real_world_function':
+            return {
+                'index': d['index'],
+                'prompt': d['prompt'],
+                'entry_point': d['entry_point'],
+                'solution': d['solution'],
+                'tests': d['test'],
+                'data_args': {
+                    'prompt_test': d['prompt_test'],
+                    'context_program': d['context_program'],
+                    'context_test_program': d['context_test_program'],
+                }
+            }
+        elif self.name == 'real_world_method':
+            return {
+                'index': d['index'],
+                'prompt': d['prompt_code'],
+                'entry_point': d['entry_point'],
+                'solution': d['solution'],
+                'tests': d['tests'],
+                'data_args': {
+                    'entry_point': d['entry_point'],
+                    'program': d['program'],
+                    'start_line': d['start_line'],
+                    'end_line': d['end_line'],
+                    'test_prefix': d['test_prefix']
+                }
+            }
+        elif self.name == 'repo_exec':
+            return {
+                'index': d['index'],
+                'prompt': d['prompt'],
+                'entry_point': d['entry_point'],
+                'solution': d['solution'],
+                'tests': d['tests'],
+                'data_args': {
+                    'context': d['context'],
+                    'check_prefix': d['check_prefix'],
+                }
+            }
         else:
             raise NotImplementedError(f'self.name={self.name}')

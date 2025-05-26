@@ -4,11 +4,12 @@ from tenacity import retry, wait_random_exponential, stop_after_attempt
 from .models import ModelBase
 
 
-@retry(wait=wait_random_exponential(min=10, max=20), stop=stop_after_attempt(10))
+@retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(5))
 def gpt_chat(
         client: OpenAI,
         model: str,
         messages: List[Dict],
+        tools: List[Dict] = [],
         max_tokens: int = 1024,
         stop_strs: List[str] = [],
         temperature: float = 0.8
@@ -21,6 +22,8 @@ def gpt_chat(
         top_p=0.95,
         stop=stop_strs
     )
+    if len(tools) > 0:
+        args['tools'] = tools
 
     response = client.chat.completions.create(**args)
 
@@ -35,6 +38,7 @@ def gpt_chat(
             'completion_tokens': completion_tokens
         }
     }
+
 
 
 @retry(wait=wait_random_exponential(min=10, max=20), stop=stop_after_attempt(10))
@@ -54,7 +58,7 @@ def gpt_embed(
         'output': response.data[0].embedding,
         'tokens_count': {
             'prompt_tokens': prompt_tokens,
-            'total_tokens': total_tokens
+            'completion_tokens': total_tokens
         }
     }
 
@@ -68,6 +72,7 @@ class APIModels(ModelBase):
     def generate_chat(
             self,
             messages: List[Dict],
+            tools: List[Dict] = [],
             max_tokens: int = 1024,
             stop_strs: List[str] = [],
             temperature: float = 0.8
@@ -76,7 +81,19 @@ class APIModels(ModelBase):
             client=self.client,
             model=self.model_path,
             messages=messages,
+            tools=tools,
             max_tokens=max_tokens,
             stop_strs=stop_strs,
             temperature=temperature
+        )
+
+    def generate_embed(
+            self,
+            input: str,
+
+    ) -> Dict:
+        return gpt_embed(
+            client=self.client,
+            model=self.model_path,
+            input=input
         )

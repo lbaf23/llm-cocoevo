@@ -1,55 +1,31 @@
 from code_models import ModelBase
-from utils import extract_code, print_log, add_block
+from utils import extract_code, print_log, add_block, get_first_feedback
 from typing import Dict, Any
-import random
-
-
-system_prompt_list = [
-'''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring.
-Your task is to write the correct function implementation program.
-Write the program in a Python code block, and do not including docstring in it.''',
-'''\
-You are a skilled Python developer.
-Your responsibility is to implement a function based on the provided signature and its description.
-Write the Python implementation in a code block, and exclude the docstring from the code.''',
-'''\
-As a Python programming expert, you will receive a function signature along with a description of its behavior.
-Your task is to implement the function accordingly.
-Provide the solution as a Python code block, omitting the docstring.''',
-'''\
-You are a Python programming specialist.
-You will be given a function name, its parameters, and a detailed description of its expected functionality.
-Your job is to implement the function in Python, ensuring the docstring is not included in the code block.''',
-'''\
-You are an experienced Python coder.
-Based on the provided function signature and explanation, write a Python implementation of the function.
-Do not include the accompanying docstring in the code block.''',
-'''\
-As a Python expert, your task is to create a function implementation based on the provided function signature and its description.
-Write the implementation in Python within a code block, without adding the docstring.''',
-'''\
-You are a professional Python developer.
-Given a function signature and its detailed explanation, your job is to implement the function in Python.
-Provide the code in a Python block, ensuring the docstring is not included.''',
-'''\
-You are a Python coding expert.
-Using the provided function signature and description, write the Python code for the function.
-The implementation should not include the docstring and must be enclosed in a Python code block.''',
-'''\
-As an expert Python programmer, you will be provided with a function's definition and a description of its behavior.
-Your task is to write the corresponding Python implementation, excluding the docstring.
-Present the solution in a Python code block.''',
-'''\
-As a Python coding professional, you are required to write a function based on the given signature and description.
-Submit the implementation as a Python code block without the docstring.'''
-]
+from .utils import get_code_system_prompt
 
 
 class CodeGenerator:
     function_signature_and_docstring = '### Function Signature and Docstring'
     program = '### Program'
+
+    # for real world
+    program_skeleton = '### Program Skeleton'
+    rw_function_program_skeleton_inst = '''\
+Implement the function with a `# TODO` sign. Only write the target function that needs to be implemented, do not repeat the rest part of programs and docstrings.'''
+
+    rw_method_program_skeleton_inst = '''\
+Implement the function with a `# TODO` sign. Only write the class definition and the target method that needs to be implemented, do not repeat the rest part of programs and docstrings.
+For example:
+```python
+class TargetClass:
+    def target_method(...):
+        # Your code here
+```
+'''
+
+    # for repo_exec
+    related_program_context = '### Related Program Context'
+    related_program_context_inst = 'The following is the program context that the target function depends on. You need to write the program based on these dependencies.'
 
     new_program = '### New Program'
 
@@ -75,30 +51,45 @@ class CodeGenerator:
     ) -> None:
         self.model = model
 
-    def generate(
-            self,
-            prompt: str,
-            init_method: str = 'default',
-            max_tokens: int = 1024,
-            temperature: float = 0.8
-    ) -> Dict:
-        if init_method == 'random_prompt':
-            system_prompt = random.sample(system_prompt_list, 1)[0]
-        elif init_method == 'default':
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring.
-Your task is to write the correct function implementation program.
-Write the program in a Python code block, and do not including docstring in it.'''
+    def make_prefix_prompt(self, env_type: str, prompt: str, data_args: Dict[str, Any]) -> str:
+        if env_type == 'func':
+            return f'''\
+{self.function_signature_and_docstring}
+{add_block(prompt)}'''
+        elif env_type == 'real_world_function':
+            return f'''\
+{self.rw_function_program_skeleton_inst}
+
+{self.program_skeleton}
+{add_block(prompt)}
+'''
+
+        elif env_type == 'repo_exec':
+            assert data_args.__contains__('context')
+            context = data_args['context']
+            return f'''\
+{self.related_program_context}
+{self.related_program_context_inst}
+{add_block(context)}
+
+{self.function_signature_and_docstring}
+{add_block(prompt)}'''
         else:
             raise NotImplementedError
 
-        user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+    def generate(
+            self,
+            prompt: str,
+            env_type: str,  # func, repo_exec
+            data_args: Dict[str, Any],
+            init_method: str = 'default',
+            max_tokens: int = 1024,
+            temperature: float = 0.8,
+    ) -> Dict:
+        system_prompt = get_code_system_prompt('generation', env_type, init_method)
 
-{self.program}
-'''
+        user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + '\n\n' + self.program + '\n'
+
         messages = [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_prompt}
@@ -129,19 +120,13 @@ Write the program in a Python code block, and do not including docstring in it.'
             prompt: str,
             code1: str,
             code2: str,
+            env_type: str,
+            data_args: Dict[str, Any],
             max_tokens: int = 1024,
-            temperature: float = 0.8
+            temperature: float = 0.8,
     ) -> Dict[str, Any]:
-
-        system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with two possible program implementations of the function.
-Your task is to first describe their similarities in 2-3 sentences, and then write a new program based on these two programs.
-Write the program in a Python code block, and do not including docstring in it.'''
-
-        user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+        system_prompt = get_code_system_prompt('crossover', env_type)
+        user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.program1}
 {add_block(code1)}
@@ -180,18 +165,13 @@ Write the program in a Python code block, and do not including docstring in it.'
             self,
             prompt: str,
             code: str,
+            env_type: str,
+            data_args: Dict[str, Any],
             max_tokens: int = 1024,
-            temperature: float = 0.8
+            temperature: float = 0.8,
     ) -> Dict[str, Any]:
-        system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and docstring, as well as a possible program implementation of the function.
-Your task is to write a new program that is different from this program.
-Write the program in a Python code block, and do not including docstring in it.'''
-
-        user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+        system_prompt = get_code_system_prompt('mutation', env_type)
+        user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.program}
 {add_block(code)}
@@ -227,36 +207,16 @@ Write the program in a Python code block, and do not including docstring in it.'
             self,
             prompt: str,
             code: str,
-            test_feedback: str = '',
+            env_type: str,
+            data_args: Dict[str, Any],
+            test_feedback: str,
             max_tokens: int = 1024,
-            temperature: float = 0.8
+            temperature: float = 0.8,
     ) -> Dict[str, Any]:
-        if test_feedback.strip() == '':
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with a possible function implementation program.
-Your task is to first explain the possible errors in this program in 2-3 sentences, and then write the correct program.
-Write the program in a Python code block, and do not including docstring in it.'''
+        assert test_feedback != ''
 
-            user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
-
-{self.program}
-{add_block(code)}
-
-{self.explanation_and_correct_program}
-'''
-        else:
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with an incorrect function implementation program and a failed test case.
-Your task is to first explain in 2-3 sentences why the program is incorrect, and then write the correct program.
-Write the program in a Python code block, and do not including docstring in it.'''
-
-            user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+        system_prompt = get_code_system_prompt('repair', env_type)
+        user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.incorrect_program}
 {add_block(code)}
@@ -296,31 +256,30 @@ Write the program in a Python code block, and do not including docstring in it.'
             prompt: str,
             item: Dict,
             history: Dict,
+            env_type: str,
+            data_args: Dict[str, Any],
             max_message_tokens: int = 256,
             max_tokens: int = 1024,
-            temperature: float = 0.2
+            temperature: float = 0.2,
     ) -> Dict[str, Any]:
         assert item is not None
         assert item['score'] < 1.0
 
         code = item['code']
-        test_feedback = item['feedbacks'][0]['message']
+        test_feedback = get_first_feedback(item['feedbacks'])
 
+        tokens_count = {
+            'prompt_tokens': 0,
+            'completion_tokens': 0
+        }
         if history is not None:
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with an incorrect function implementation program and a failed test case.
-The user has made some modifications, but the program is still wrong.
-Your task is to explain in natural language why this program is still wrong and suggest changes. Do not write any code.'''
-
             history_code = history['code']
-            history_test_feedback = history['feedbacks'][0]['message']
-
+            history_test_feedback = get_first_feedback(history['feedbacks'])
             reflection_message = item['reflection_message']
 
-            user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+            system_prompt = get_code_system_prompt('reflection', env_type, 'long')
+
+            user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.incorrect_program}
 {add_block(history_code)}
@@ -338,14 +297,9 @@ Your task is to explain in natural language why this program is still wrong and 
 {self.reflection_message}
 '''
         else:
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with an incorrect function implementation program and a failed test case.
-Your task is to explain in natural language why this program is wrong and suggest changes. Do not write any code.'''
+            system_prompt = get_code_system_prompt('reflection', env_type, 'short')
 
-            user_prompt = f'''\
-{self.function_signature_and_docstring}
-{add_block(prompt)}
+            user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.incorrect_program}
 {add_block(code)}
@@ -364,26 +318,19 @@ Your task is to explain in natural language why this program is wrong and sugges
             max_tokens=max_message_tokens,
             temperature=temperature
         )
+        tokens_count['prompt_tokens'] += gen['tokens_count']['prompt_tokens']
+        tokens_count['completion_tokens'] += gen['tokens_count']['completion_tokens']
+
         reflection_message = gen['output']
 
         print_log('generate reflection message [system]', system_prompt, 1)
         print_log('generate reflection message [user]', user_prompt, 1)
         print_log('generate reflection message [assistant]', reflection_message, 1)
 
-
         if history is not None:
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with an incorrect function implementation program and a failed test case.
-The user has made some modifications, but the program is still wrong.
-Your task is to write the correct program according to the reflection message.
-Write the program in a Python code block, and do not including docstring in it.'''
+            system_prompt = get_code_system_prompt('reflection_code', env_type, 'long')
         else:
-            system_prompt = '''\
-You are an expert Python programmer.
-You will be provided with a function signature and its docstring, along with an incorrect function implementation program and a failed test case.
-Your task is to write the correct program according to the reflection message.
-Write the program in a Python code block, and do not including docstring in it.'''
+            system_prompt = get_code_system_prompt('reflection_code', env_type, 'short')
 
         user_prompt += reflection_message
 
@@ -395,6 +342,8 @@ Write the program in a Python code block, and do not including docstring in it.'
             max_tokens=max_tokens,
             temperature=temperature
         )
+        tokens_count['prompt_tokens'] += gen['tokens_count']['prompt_tokens']
+        tokens_count['completion_tokens'] += gen['tokens_count']['completion_tokens']
 
         output = gen['output']
         code = extract_code(output)
@@ -406,5 +355,6 @@ Write the program in a Python code block, and do not including docstring in it.'
 
         return {
             'code': code,
-            'reflection_message': reflection_message
+            'reflection_message': reflection_message,
+            'tokens_count': tokens_count
         }

@@ -1,29 +1,26 @@
-"""
-generate tests
-
-"""
-
-from generators import TestGenerator
-from utils import append_jsonl, read_jsonl, create_or_clear_file, init_log
+from generators import CodeGenerator
+from typing import Tuple, List
+from utils import append_jsonl, read_jsonl, print_log, create_or_clear_file, init_log
 from tqdm import tqdm
 from typing import Dict
 from running_utils import load_env
 import os
 
 
-def GenTests(
+def Sampling(
         index: int,
-        test_generator: TestGenerator,
+        code_generator: CodeGenerator,
         data: Dict,
         result_file: str,
         log_file: str,
         run_config: Dict,
+        env_type: str,
 ) -> None:
     """
-    sampling tests
+    sampling
     """
 
-    generations = run_config['generations']
+    sampling_nums = run_config['sampling_nums']
     temperature = run_config['temperature']
     max_tokens = run_config['max_tokens']
 
@@ -37,25 +34,27 @@ def GenTests(
         create_or_clear_file(log_file)
         create_or_clear_file(result_file)
 
-    td = tqdm(initial=r, total=generations)
+    td = tqdm(initial=r, total=sampling_nums)
     td.set_description(f'''[{index}]''')
 
     prompt = data['prompt']
-    entry_point = data['entry_point']
+    data_args = data['data_args']
 
-    while r < generations:
-        gen = test_generator.generate(
+    while r < sampling_nums:
+        gen = code_generator.generate(
             prompt=prompt,
-            entry_point=entry_point,
+            env_type=env_type,
+            data_args=data_args,
             max_tokens=max_tokens,
             temperature=temperature
         )
-
-        all_tests = [{'test': t} for t in gen['tests']]
-        append_jsonl(result_file, {
+        item = {
             'r': r,
-            'tests': all_tests,
-        })
+            'code': gen['code'],
+            'output': gen['output'],
+            'tokens_count': gen['tokens_count']
+        }
+        append_jsonl(result_file, item)
         td.update(1)
         r += 1
 
@@ -69,8 +68,11 @@ if __name__ == '__main__':
     log_dir = env['log_dir']
     result_dir = env['result_dir']
     config = env['config']
+    run_type = env['run_type']
 
-    test_generator = TestGenerator(model)
+    assert run_type.startswith('sampling')
+
+    code_generator = CodeGenerator(model)
 
     for i in dataset.data_range:
         if args.start < args.end and not args.start <= i < args.end:
@@ -84,11 +86,12 @@ if __name__ == '__main__':
         init_log(log_file)
 
         run_config = config[args.run_type]
-        GenTests(
+        Sampling(
             index=i,
-            test_generator=test_generator,
+            code_generator=code_generator,
             data=data,
             result_file=result_file,
             log_file=log_file,
             run_config=run_config,
+            env_type=args.env_type,
         )

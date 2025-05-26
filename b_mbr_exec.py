@@ -4,7 +4,7 @@ MBR-Exec
 """
 
 from code_evaluator import evaluate_code
-from typing import List
+from typing import List, Dict, Any
 from utils import write_jsonl, get_unique_tests, get_codes, create_dirs
 from running_utils import load_env
 from tqdm import tqdm
@@ -13,23 +13,27 @@ import os
 
 def MBR_Exec(
         index: int,
+        data: Dict[str, Any],
         codes: List[str],
         tests: List[str],
         result_file: str,
         env_type: str,
         num_process: int,
-        total_time_limit: int
+        total_time_limit: int,
 ) -> None:
     code_nums = len(codes)
     test_nums = len(tests)
 
     program_output_list = [['' for _ in range(test_nums)] for _ in range(code_nums)]
 
+    data_args = data['data_args']
+
     for i, code in enumerate(tqdm(codes, desc=f'[{index}]')):
         res = evaluate_code(
             code=code,
             tests=tests,
-            evaluator_type=env_type,
+            env_type=env_type,
+            data_args=data_args,
             num_process=num_process,
             total_time_limit=total_time_limit,
             feedback=True
@@ -105,9 +109,11 @@ if __name__ == '__main__':
         codes = get_codes(codes_file)
         codes = codes[ : max_codes]
         tests = get_unique_tests(tests_file, max_tests_generations, max_tests_per_generation)
+        data = dataset.get_data(i)
 
         MBR_Exec(
             index=i,
+            data=data,
             codes=codes,
             tests=tests,
             result_file=result_file,

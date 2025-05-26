@@ -1,6 +1,8 @@
 """
 CodeCOT
 
+https://github.com/huangd1999/CodeCoT
+
 """
 
 from typing import List, Tuple
@@ -253,12 +255,15 @@ if __name__ == '__main__':
                 user_message = code_generation_prompt.format(
                     prompt=prompt
                 )
-                output = model.generate_chat(
+                gen = model.generate_chat(
                     [
                         {'role': 'user', 'content': user_message}
                     ],
                     stop_strs=['### Task Description:']
                 )
+                output = gen['output']
+                tokens_count = gen['tokens_count']
+
                 print_log(f'{r}: user_prompt', user_message, 0)
                 print_log(f'{r}: output', output, 0)
 
@@ -276,12 +281,15 @@ if __name__ == '__main__':
                     test_cases=tests_to_str(tests),
                     error_message=errors[0]
                 )
-                output = model.generate_chat(
+                gen = model.generate_chat(
                     [
                         {'role': 'user', 'content': user_message}
                     ],
                     stop_strs=['### Code Snippet:', '### Test Cases:', '### Error Messages:']
                 )
+                output = gen['output']
+                tokens_count = gen['tokens_count']
+
                 print_log(f'{r}: user_prompt', user_message, 0)
                 print_log(f'{r}: output', output, 0)
 
@@ -296,7 +304,8 @@ if __name__ == '__main__':
                 'code': code,
                 'score': score,
                 'errors': errors,
-                'tests': tests
+                'tests': tests,
+                'all_tokens_count': tokens_count
             }
             append_jsonl(result_file, result)
 

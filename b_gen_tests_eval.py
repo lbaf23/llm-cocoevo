@@ -1,9 +1,4 @@
-"""
-evaluate generated tests
-
-"""
-
-from utils import read_jsonl, write_jsonl, create_dirs
+from utils import read_file, read_jsonl, write_jsonl, create_dirs
 from code_evaluator import evaluate_code
 from tqdm import tqdm
 import os
@@ -29,6 +24,7 @@ if __name__ == '__main__':
             continue
 
         data = dataset.get_data(i)
+        data_args = data['data_args']
         solution = data['solution']
 
         result_file = os.path.join(result_dir, f'result_{i}.jsonl')
@@ -42,12 +38,13 @@ if __name__ == '__main__':
             res = evaluate_code(
                 code=solution,
                 tests=tests,
-                evaluator_type=args.env_type,
+                env_type=args.env_type,
+                data_args=data_args,
                 num_process=args.num_process,
                 total_time_limit=args.total_time_limit
             )
             status = res['status']
-            for i in range(len(tests)):
-                c['tests'][i]['correct'] = status[i]
+            for j in range(len(tests)):
+                c['tests'][j]['correct'] = status[j]
 
         write_jsonl(result_file, content)

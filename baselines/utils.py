@@ -71,7 +71,7 @@ def extract_first_block(output: str, sig = '```') -> str:
     return block
 
 
-@retry(wait=wait_random_exponential(min=10, max=20), stop=stop_after_attempt(10))
+@retry(wait=wait_random_exponential(min=1, max=10), stop=stop_after_attempt(5))
 def gpt_chat(
         client: OpenAI,
         model: str,
@@ -89,8 +89,15 @@ def gpt_chat(
         stop=stop_strs
     )
 
-    return response.choices[0].message.content
-
+    prompt_tokens = response.usage.prompt_tokens
+    completion_tokens = response.usage.completion_tokens
+    return {
+        'output': response.choices[0].message.content,
+        'tokens_count': {
+            'prompt_tokens': prompt_tokens,
+            'completion_tokens': completion_tokens
+        }
+    }
 
 class APIModels:
     def __init__(self, name: str, model_path: str = 'gpt-3.5-turbo', **args):
@@ -104,7 +111,7 @@ class APIModels:
             max_tokens: int = 1024,
             stop_strs: List[str] = [],
             temperature: float = 0.8
-    ) -> str:
+    ) -> Dict:
         return gpt_chat(
             client=self.client,
             model=self.model_path,

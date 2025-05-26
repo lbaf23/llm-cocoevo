@@ -1,7 +1,9 @@
 {
+    "result_dir": "result/real_world_function/qwen2.5-coder-32b",
+    "log_dir": "logs/real_world_function/qwen2.5-coder-32b",
     "dataset": {
-        "name": "leetcode",
-        "dataset_file": "data/leetcode_contest.jsonl"
+        "name": "real_world_function",
+        "dataset_file": "data/real_world_function.jsonl"
     },
     "model": {
         "model_type": "api",
@@ -60,6 +62,7 @@
         "max_tokens": 1024,
         "temperature": 0.2
     },
+
     "coevod": {
         "init": {
             "use_random_prompt": true,
@@ -105,35 +108,5 @@
                 "max_feedback_tests": 50
             }
         }
-    },
-    "evolutiond": {
-        "population_nums": 10,
-        "max_generations": 100,
-        "fitness_function": "codet_sqrt",
-        "scheduler": {
-            "func": "cosine",
-            "start_rate": 0.0,
-            "end_rate": 1.0
-        },
-        "crossover": {
-            "selection_algo": "tournament_2"
-        },
-        "mutation": {
-            "selection_algo": "random"
-        },
-        "selection": {
-            "selection_algo": "greedy"
-        },
-        "init_method": "random_prompt",
-        "max_tokens": 1024,
-        "temperature": 0.8,
-        "test": {
-            "tests_dir": "gen_tests",
-            "max_generations": 10,
-            "max_tests_per_generation": 10
-        }
-    },
-    
-    "result_dir": "result/leetcode_contest/qwen2.5-coder-32b",
-    "log_dir": "logs/leetcode_contest/qwen2.5-coder-32b"
+    }
 }

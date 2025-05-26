@@ -1,9 +1,7 @@
 import ast
-from typing import List, Any
+from typing import List, Any, Dict
 import black
-import sys
-from io import StringIO
-import os
+import re
 
 
 def extract_first_block(output: str):
@@ -46,13 +44,13 @@ def extract_blocks(content: str) -> List[str]:
         block = ''
         while i < len(lines):
             while i < len(lines):
-                if lines[i].strip().__contains__('```'):
+                if lines[i].strip().startswith('```'):
                     i += 1
                     break
                 i += 1
             block = ''
             while i < len(lines):
-                if lines[i].strip().__contains__('```'):
+                if lines[i].strip().startswith('```'):
                     i += 1
                     blocks.append(block.strip())
                     block = ''
@@ -78,6 +76,7 @@ def format_test_with_comment(test: str) -> str:
     if i < len(lines) - 1:
         lines = lines[ : i + 1]
     return '\n'.join(lines)
+
 
 
 def filter_tests(tests: List[str]) -> List[str]:
@@ -175,6 +174,11 @@ def filter_test_case_text(test_case: str, length: int = 128) -> str:
             line = filter_long_text(line, length, 0)
         test_case += line + '\n'
     return test_case.strip()
+
+
+import sys
+from io import StringIO
+import os
 
 
 class StdUtils:
@@ -288,12 +292,55 @@ def try_format_code(code: str, lang: str = 'python', mode: str = 'soft') -> str:
     return code
 
 
+def remove_comments(code_str: str) -> str:
+    lines = code_str.split('\n')
+    i = 0
+    code = ''
+    while i < len(lines):
+        if lines[i].strip() == '"""':
+            i += 1
+            while lines[i].strip() != '"""' and i < len(lines):
+                i += 1
+            if i >= len(lines):
+                break
+            i += 1
+        code += lines[i] + '\n'
+        i += 1
+    return code
+
+
 def format_code(code: str, lang: str = 'python', mode: str = 'soft') -> str:
     if lang == 'python':
         if mode == 'hard':
+            # code = remove_comments(code)
             code = ast.unparse(ast.parse(code))
         code = black.format_str(code, mode=black.Mode(line_length=100000))
         code = code.strip()
         return code
     else:
         raise NotImplementedError
+
+
+def select_unique(lst: List[str]) -> List[str]:
+    s = set()
+    res = []
+    for l in lst:
+        if not s.__contains__(l):
+            res.append(l)
+            s.add(l)
+    return res
+
+
+def get_first_feedback(feedbacks: List[Dict]) -> str:
+    messages = [f['message'] for f in feedbacks if f.__contains__('message')]
+    if len(messages) > 0:
+        return messages[0]
+    else:
+        return ''
+
+
+def extract_unit_tests(output: str) -> List[str]:
+    code = extract_first_block(output)
+    pattern = r'def\s+test_\w+\s*\(.*?\)\s*:.*?(?=\ndef|\Z)'
+    matches = re.findall(pattern, code, flags=re.DOTALL)
+    return [match.strip() for match in matches]

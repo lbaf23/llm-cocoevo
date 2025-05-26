@@ -1,6 +1,8 @@
 """
 AgentCoder
 
+https://github.com/huangd1999/AgentCoder
+
 """
 
 from typing import List, Tuple
@@ -137,8 +139,6 @@ Below is a code snippet and its test cases. Please fix the bugs reported by the 
 
 
 from multiprocessing import Process, Queue
-from io import StringIO
-import sys
 import traceback
 
 def evaluate(code: str, test_cases: List[str]) -> Tuple[float, str]:
@@ -223,6 +223,7 @@ if __name__ == '__main__':
         r = 0
         code = ''
         tests = []
+        error_message = ''
         if os.path.exists(result_file):
             content = read_jsonl(result_file)
 
@@ -245,15 +246,19 @@ if __name__ == '__main__':
                 user_message = programmer_prompt.format(
                     prompt=prompt
                 )
-                output = model.generate_chat(
+                gen = model.generate_chat(
                     [
                         {'role': 'system', 'content': 'You are a software programmer.'},
                         {'role': 'user', 'content': user_message}
                     ],
                     stop_strs=[]
                 )
-                print_log(f'{r}: user_prompt', user_message, 0)
-                print_log(f'{r}: output', output, 0)
+
+                output = gen['output']
+                tokens_count = gen['tokens_count']
+
+                print_log(f'{r}: user_prompt: code', user_message, 0)
+                print_log(f'{r}: output: code', output, 0)
 
                 code = extract_code(output, '```python')
 
@@ -263,15 +268,23 @@ if __name__ == '__main__':
                 user_message = test_designer_prompt.format(
                     prompt=prompt
                 )
-                output = model.generate_chat(
+                system_prompt = '''As a tester, your task is to create comprehensive test cases for the incomplete function. These test cases should encompass Basic, Edge, and Large Scale scenarios to ensure the code's robustness, reliability, and scalability'''
+                gen = model.generate_chat(
                     [
-                        {'role': 'system', 'content': '''As a tester, your task is to create comprehensive test cases for the incomplete function. These test cases should encompass Basic, Edge, and Large Scale scenarios to ensure the code's robustness, reliability, and scalability'''},
+                        {'role': 'system', 'content': system_prompt},
                         {'role': 'user', 'content': user_message}
                     ],
                     stop_strs=[]
                 )
-                print_log(f'{r}: user_prompt', user_message, 0)
-                print_log(f'{r}: output', output, 0)
+
+                output = gen['output']
+                tokens_count2 = gen['tokens_count']
+                tokens_count['prompt_tokens'] += tokens_count2['prompt_tokens']
+                tokens_count['completion_tokens'] += tokens_count2['completion_tokens']
+
+                print_log(f'{r}: system_prompt: test', system_prompt, 0)
+                print_log(f'{r}: user_prompt: test', user_message, 0)
+                print_log(f'{r}: output: test', output, 0)
 
                 tests = extract_asserts(output)
 
@@ -279,20 +292,26 @@ if __name__ == '__main__':
 
                 score, error_message = evaluate(code, tests)
             else:
+                assert error_message != ''
+                system_prompt = 'You are a software programmer.'
                 user_message = programmer_feedback_prompt.format(
                     error_code=code,
                     test_cases='\n'.join(tests),
                     error_message=error_message,
                 )
-                output = model.generate_chat(
+                gen = model.generate_chat(
                     [
-                        {'role': 'system', 'content': 'You are a software programmer.'},
+                        {'role': 'system', 'content': system_prompt},
                         {'role': 'user', 'content': user_message}
                     ],
                     stop_strs=['### Code Snippet:', '### Test Cases:', '### Error Messages:']
                 )
-                print_log(f'{r}: user_prompt', user_message, 0)
-                print_log(f'{r}: output', output, 0)
+                output = gen['output']
+                tokens_count = gen['tokens_count']
+
+                print_log(f'{r}: system_prompt: repair', system_prompt, 0)
+                print_log(f'{r}: user_prompt: repair', user_message, 0)
+                print_log(f'{r}: output: repair', output, 0)
 
                 code = extract_code(output, '```python')
                 print_log(f'{r}: extract code', code, 0)
@@ -304,7 +323,8 @@ if __name__ == '__main__':
                 'code': code,
                 'score': score,
                 'error_message': error_message,
-                'tests': tests
+                'tests': tests,
+                'all_tokens_count': tokens_count
             }
             append_jsonl(result_file, result)
 

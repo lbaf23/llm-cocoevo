@@ -15,6 +15,7 @@ def crossover_evaluation(
         code_population: List[Dict],
         test_population: List[Dict],
         env_type: str,
+        data_args: Dict,
         num_process: int,
         total_time_limit: float,
 ) -> Tuple[List[Dict], List[Dict], List[List[bool]]]:
@@ -49,9 +50,10 @@ def crossover_evaluation(
 
     for i, code in enumerate(code_strs):
         res = evaluate_code(
-            code,
-            test_strs,
-            evaluator_type=env_type,
+            code=code,
+            tests=test_strs,
+            env_type=env_type,
+            data_args=data_args,
             num_process=num_process,
             total_time_limit=total_time_limit,
         )
@@ -124,7 +126,7 @@ def calculate_codet_reward_fitness(
 
 def calculate_test_conf(test_idx, code_population, matrix):
     passed = 0.0
-    failed = 0.0
+    # failed = 0.0
     total = 0.0
     for c in code_population:
         code_idx = int(c['idx'])
@@ -178,6 +180,8 @@ class CoCoEvo:
         self.test_init_generations = self.init_config['test_init_generations']
 
         self.code_population_nums = self.code_config['population_nums']
+
+        self.total_tokens_count = []
 
 
         self.scheduler_config = self.code_config['scheduler']
@@ -249,9 +253,13 @@ max_generations: {self.test_config['max_generations']}
     def should_return(self):
         return self.code_generations >= self.code_config['max_generations']
 
-    def update(self):
+    def update(self, tokens_count: Dict[str, int]) -> None:
+        """
+        Update tqdm, code generations, and tokens count
+        """
         self.code_generations += 1
         self.td.update(1)
+        self.total_tokens_count.append(tokens_count)
 
     def update_code_fitness(self, fitness_function: str = '') -> None:
         if fitness_function == '':
@@ -378,7 +386,7 @@ max_generations: {self.test_config['max_generations']}
         self.code_population = []
         self.test_population = []
 
-        init_method = self.init_config['method']
+        # init_method = self.init_config['method']
         code_init_generations = self.init_config['code_init_generations']
         test_init_generations = self.init_config['test_init_generations']
 
@@ -390,11 +398,13 @@ max_generations: {self.test_config['max_generations']}
 
             gen = code_generator.generate(
                 prompt=self.prompt,
+                env_type=self.env_type,
+                data_args=self.data_args,
                 init_method='random_prompt' if self.use_random_prompt else 'default',
                 max_tokens=self.code_config['max_tokens'],
                 temperature=self.code_config['temperature']
             )
-            self.update()
+            self.update(gen['tokens_count'])
 
             item = {
                 'r': self.r,
@@ -413,7 +423,9 @@ max_generations: {self.test_config['max_generations']}
                 gen = test_generator.generate_population(
                     prompt=self.prompt,
                     entry_point=self.entry_point,
-                    generate_mode='init',
+                    env_type=self.env_type,
+                    data_args=self.data_args,
+                    generate_mode='random',
                     max_tests_per_generation=self.test_config['max_tests_per_generation'],
                     max_tokens=self.test_config['max_tokens'],
                     temperature=self.test_config['temperature']
@@ -422,7 +434,9 @@ max_generations: {self.test_config['max_generations']}
                 gen = test_generator.generate_population(
                     prompt=self.prompt,
                     entry_point=self.entry_point,
-                    generate_mode='offspring',
+                    env_type=self.env_type,
+                    data_args=self.data_args,
+                    generate_mode='population',
                     existing_tests=self.test_offspring,
                     max_tests_per_generation=self.test_config['max_tests_per_generation'],
                     max_feedback_tests=self.test_config['offspring']['max_feedback_tests'],
@@ -431,18 +445,11 @@ max_generations: {self.test_config['max_generations']}
                 )
             self.test_offspring += gen['tests']
 
+            # count tokens
+            self.total_tokens_count.append(gen['tokens_count'])
+
         self.update_test_population()
-
-        # do codet selection
-        # if init_method == 'codet':
-            # self.update_fitness(code_fitness_function='codet', test_fitness_function='weighted')
-            # self.select_codes('greedy')
-            # self.select_tests('greedy')
-        # else:
-
         self.update_fitness(update_codes=True, update_tests=False)
-        # self.select_codes()
-        # self.select_tests()
 
     def code_crossover(self):
         crossover_nums = self.code_crossover_nums[self.r - 1]
@@ -465,10 +472,12 @@ max_generations: {self.test_config['max_generations']}
                 prompt=self.prompt,
                 code1=parent1['code'],
                 code2=parent2['code'],
+                env_type=self.env_type,
+                data_args=self.data_args,
                 max_tokens=self.code_config['max_tokens'],
                 temperature=self.code_config['temperature']
             )
-            self.update()
+            self.update(gen['tokens_count'])
 
             item = {
                 'r': self.r,
@@ -477,7 +486,7 @@ max_generations: {self.test_config['max_generations']}
                 'output': gen['output'],
                 'repair_rounds': 0,
                 'repaired_nums': 0,
-                'parents_index': parents_index
+                'parents_index': parents_index,
             }
             self.code_crossover_offspring.append(item)
 
@@ -499,75 +508,21 @@ max_generations: {self.test_config['max_generations']}
             gen = code_generator.generate_mutation(
                 prompt=self.prompt,
                 code=parent['code'],
+                env_type=self.env_type,
+                data_args=self.data_args,
                 max_tokens=self.code_config['max_tokens'],
                 temperature=self.code_config['temperature']
             )
-            self.update()
+            self.update(gen['tokens_count'])
             item = {
                 'r': self.r,
                 'code': gen['code'],
                 'stage': 'mutation',
                 'repair_rounds': 0,
                 'repaired_nums': 0,
-                'parent_index': p_index
+                'parent_index': p_index,
             }
             self.code_mutation_offspring.append(item)
-
-    def code_repair(self):
-        self.code_repair_offspring = []
-        parents_index = selection(
-            population=self.code_population,
-            select_size=self.code_repair_nums,
-            algo=self.code_config['repair']['selection_algo'],
-            metric='fitness'
-        )
-        max_repaired_nums = self.code_config['repair']['max_repaired_nums']
-        for p_index in parents_index:
-            if self.should_return():
-                break
-
-            parent = self.code_population[p_index]
-            test_feedback = get_feedback(parent)
-
-            if (max_repaired_nums > 0 and parent['repaired_nums'] >= max_repaired_nums) or \
-                test_feedback == '':
-
-                parent = self.code_population[p_index]
-                gen = code_generator.generate_mutation(
-                    prompt=self.prompt,
-                    code=parent['code'],
-                    max_tokens=self.code_config['max_tokens'],
-                    temperature=self.code_config['temperature']
-                )
-                self.update()
-                item = {
-                    'r': self.r,
-                    'code': gen['code'],
-                    'stage': 'mutation',
-                    'repair_rounds': 0,
-                    'repaired_nums': 0,
-                    'parent_index': p_index
-                }
-            else:
-                gen = code_generator.generate_repair(
-                    prompt=self.prompt,
-                    code=parent['code'],
-                    test_feedback=test_feedback,
-                    max_tokens=self.code_config['max_tokens'],
-                    temperature=self.code_config['temperature']
-                )
-                self.update()
-                parent['repaired_nums'] += 1
-                item = {
-                    'r': self.r,
-                    'code': gen['code'],
-                    'stage': 'repair',
-                    'repair_rounds': parent['repair_rounds'] + 1,
-                    'repaired_nums': 0,
-                    'output': gen['output'],
-                    'parent_index': p_index
-                }
-            self.code_repair_offspring.append(item)
 
     def update_code_population(self):
         self.code_population += self.code_offspring
@@ -581,12 +536,13 @@ max_generations: {self.test_config['max_generations']}
         # make test feedback
         existing_tests = [t['test'] for t in self.test_population]
         program_feedback = ''
-        if offspring_config['method'] == 'offspring_with_feedback':
+        if offspring_config['method'] == 'population_and_feedback':
             feedback_code = best_one(self.code_population, metric='fitness')['code']
             cov = get_line_cov_feedback(
                 code=feedback_code,
                 test_cases=existing_tests,
-                evaluator_type=self.env_type,
+                env_type=self.env_type,
+                data_args=self.data_args,
                 num_process=self.num_process,
                 total_time_limit=self.total_time_limit
             )
@@ -596,6 +552,8 @@ max_generations: {self.test_config['max_generations']}
             gen = test_generator.generate_population(
                 prompt=self.prompt,
                 entry_point=self.entry_point,
+                env_type=self.env_type,
+                data_args=self.data_args,
                 existing_tests=existing_tests,
                 generate_mode=offspring_config['method'],
                 max_tests_per_generation=self.test_config['max_tests_per_generation'],
@@ -605,6 +563,9 @@ max_generations: {self.test_config['max_generations']}
                 temperature=self.test_config['temperature']
             )
             self.test_offspring += gen['tests']
+
+            # count tokens
+            self.total_tokens_count.append(gen['tokens_count'])
 
     def update_test_population(self) -> None:
         tests_set = set()
@@ -635,6 +596,7 @@ max_generations: {self.test_config['max_generations']}
             self.code_population,
             self.test_population,
             self.env_type,
+            self.data_args,
             self.num_process,
             self.total_time_limit
         )
@@ -644,6 +606,9 @@ max_generations: {self.test_config['max_generations']}
             self.update_test_fitness(test_fitness_function)
 
     def save_result(self):
+        """
+        Save all results after one iteration
+        """
         append_jsonl(result_file, {
             'r': self.r,
             'code_population': self.code_population,
@@ -652,7 +617,9 @@ max_generations: {self.test_config['max_generations']}
             'test_offspring': self.test_offspring,
             'matrix': self.matrix,
             'code_generations': self.code_generations,
+            'total_tokens_count': self.total_tokens_count
         })
+        self.total_tokens_count = []
 
     def run(
             self,
@@ -667,6 +634,7 @@ max_generations: {self.test_config['max_generations']}
 
         self.prompt = data['prompt']
         self.entry_point = data['entry_point']
+        self.data_args = data['data_args']
 
         self.r = 0
         self.code_generations = 0
@@ -712,7 +680,7 @@ max_generations: {self.test_config['max_generations']}
 
             self.update_fitness()
 
-            best = best_one(self.code_population, metric='fitness')
+            # best = best_one(self.code_population, metric='fitness')
 
             self.save_result()
             self.r += 1
@@ -729,7 +697,7 @@ if __name__ == '__main__':
     config = env['config']
     run_type = env['run_type']
 
-    assert run_type.startswith('coevo'), f'run_type {run_type} does not start with coevo1'
+    assert run_type.startswith('coevod'), f'run_type {run_type} does not start with coevod'
 
     create_dirs(result_dir)
     create_dirs(log_dir)

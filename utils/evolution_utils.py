@@ -54,6 +54,28 @@ def tournament_selection(
     return index_selected_list
 
 
+def greedy_random_selection(
+        population: List[Dict],
+        select_size: int,
+        metric: str,
+        greedy_ratio: float = 0.5
+) -> List[int]:
+    greedy_selection_nums = int(select_size * greedy_ratio)
+    random_selection_nums = select_size - greedy_selection_nums
+
+    index_list = [i for i in range(len(population))]
+    random.shuffle(index_list)
+    sorted_index_list = sorted(index_list, key=lambda i: population[i][metric], reverse=True)
+
+    # greedy
+    greedy_selected_index = sorted_index_list[ : greedy_selection_nums]
+    # random
+    left_index_list = sorted_index_list[greedy_selection_nums : ]
+    random_selected_index = random.sample(left_index_list, random_selection_nums)
+
+    return greedy_selected_index + random_selected_index
+
+
 def selection(
         population: List[Dict],
         select_size: int,
@@ -91,6 +113,18 @@ def selection(
         return tournament_selection(population, select_size, metric, k=k, **args)
     elif algo == 'random':
         return random_selection(population, select_size)
+    elif algo.startswith('greedy_random'):
+        if args.__contains__('greedy_ratio'):
+            greedy_ratio = float(args['greedy_ratio'])
+            args.pop('greedy_ratio')
+        elif algo.count('_') > 1:
+            greedy_ratio = float(algo.split('_')[2])
+        else:
+            greedy_ratio = 0.5
+        return greedy_random_selection(population, select_size, metric, greedy_ratio=greedy_ratio)
+    elif algo == 'test_distance':
+        assert select_size == 2
+        return test_distance_selection(population, **args)
     else:
         raise NotImplementedError
 
@@ -127,3 +161,90 @@ def random_selection(
     assert len(population) >= select_size
     index_list = [i for i in range(len(population))]
     return random.sample(index_list, select_size)
+
+
+def test_distance_selection(
+        population: List[Dict],
+        **args
+) -> List[int]:
+    length = len(population)
+
+    index_list = [i for i in range(length)]
+    i1 = random.sample(index_list, 1)[0]
+    i2 = 0
+    max_d = -1
+    for i in range(length):
+        if i == i1:
+            continue
+        d = distance(population[i]['status'], population[i1]['status'])
+        if d > max_d:
+            i2 = i
+            max_d = d
+    return [i1, i2]
+
+
+def calculate_distance(codes: List[str]) -> Tuple[float, List[List[float]]]:
+    n = len(codes)
+    distance_map = [[0 for _ in range(n)] for _ in range(n)]
+    total_distance = 0
+    count = 0
+    for i in range(n):
+        for j in range(i + 1, n):
+            distance_map[i][j] = distance(codes[i], codes[j])
+            total_distance += distance_map[i][j]
+            count += 1
+    for i in range(n):
+        for j in range(i):
+            distance_map[i][j] = distance_map[j][i]
+
+    avg_distance = total_distance / count if count > 0 else total_distance
+    return avg_distance, distance_map
+
+
+def shared_fitness(
+        population: List[Dict],
+        sigma_share: float = 0.0,
+        alpha: int = 1
+) -> List[float]:
+    """
+    calculate the shared fitness
+    """
+    codes = [p['instance'] for p in population]
+    scores = [p['score'] for p in population]
+
+    avg_distance, distance_map = calculate_distance(codes)
+    if sigma_share == 0:
+        factor = 0.3
+        sigma_share = avg_distance * factor
+
+    fitness_list = []
+    n = len(codes)
+    for i in range(n):
+        s_count = 0
+        for j in range(n):
+            d = distance_map[i][j]
+            sh = max(0, 1 - (d / sigma_share) ** alpha) if d < sigma_share else 0
+            s_count += sh
+
+        f = scores[i] / s_count if s_count > 0 else scores[i]
+        fitness_list.append(f)
+    return fitness_list
+
+
+def fitness(population: List[Dict], fitness_algo: str, **args) -> List[float]:
+    if fitness_algo == '' or fitness_algo == 'score_fitness':
+        return [p['score'] for p in population]
+    elif fitness_algo == 'shared_fitness':
+        return shared_fitness(population, **args)
+    else:
+        raise NotImplementedError
+
+
+def worst_one_index(items: List[Dict]) -> int:
+    assert len(items) > 0
+
+    worst_index = 0
+    for i, p in enumerate(items):
+        if p['score'] < items[worst_index]['score']:
+            worst_index = i
+    return worst_index

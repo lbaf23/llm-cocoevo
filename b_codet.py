@@ -4,7 +4,7 @@ CodeT
 """
 
 from code_evaluator import evaluate_code
-from typing import List
+from typing import Tuple, List, Dict, Any
 from utils import write_jsonl, get_unique_tests, get_codes, create_dirs
 from running_utils import load_env
 from tqdm import tqdm
@@ -18,6 +18,7 @@ def CodeT(
         tests: List[str],
         result_file: str,
         env_type: str,
+        data_args: Dict[str, Any],
         num_process: int,
         total_time_limit: int
 ) -> None:
@@ -29,9 +30,10 @@ def CodeT(
 
     for i, code in enumerate(tqdm(codes, desc=f'[{index}]')):
         res = evaluate_code(
-            code,
-            tests,
-            evaluator_type=env_type,
+            code=code,
+            tests=tests,
+            env_type=env_type,
+            data_args=data_args,
             num_process=num_process,
             total_time_limit=total_time_limit
         )
@@ -104,12 +106,14 @@ if __name__ == '__main__':
         codes = codes[ : max_codes]
         tests = get_unique_tests(tests_file, max_tests_generations, max_tests_per_generation)
 
+        data = dataset.get_data(i)
         CodeT(
             index=i,
             codes=codes,
             tests=tests,
             result_file=result_file,
             env_type=args.env_type,
+            data_args=data['data_args'],
             num_process=args.num_process,
             total_time_limit=args.total_time_limit
         )

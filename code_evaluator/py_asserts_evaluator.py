@@ -1,8 +1,9 @@
-from utils import filter_long_text, StdUtils
-from multiprocessing import Queue, Pool
+from utils import filter_long_text
+from utils import StdUtils
+from multiprocessing import Process, Queue, Pool
 import multiprocessing
-from typing import *
 from .utils import assert2call
+from typing import *
 
 
 def get_output_i(id: int, code: str, test_case: str, q: Queue) -> None:
@@ -80,7 +81,6 @@ def evaluate_py_asserts_multi_process(
 
     total = len(test_cases)
 
-
     num_process = min(num_process, multiprocessing.cpu_count())
     num_process = min(num_process, total)
 
@@ -124,9 +124,12 @@ def evaluate_py_asserts_multi_process(
         if result['passed']:
             status.append(True)
             passed += 1
+            if feedback:
+                feedbacks[i]['passed'] = False
         else:
             status.append(False)
             if feedback:
+                feedbacks[i]['passed'] = False
                 if result['reason'] == 'timeout_error':
                     message = f'{filter_long_text(test_cases[i])}  # program output: timeout error'
                     program_output = 'timeout error'
@@ -166,6 +169,7 @@ def evaluate_py_asserts_multi_process(
             else:
                 message = f'{filter_long_text(test_cases[id])}'
                 program_output = ''
+
             feedbacks[id]['message'] = message
             feedbacks[id]['program_output'] = program_output
 
@@ -173,6 +177,10 @@ def evaluate_py_asserts_multi_process(
     score = 0 if total == 0 else passed / total
     ret = {
         'score': score,
+        'passed': passed,
+        'total': total,
+        'passed_count': passed,
+        'total_count': total,
         'status': status
     }
 

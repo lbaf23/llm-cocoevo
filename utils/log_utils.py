@@ -1,7 +1,6 @@
 import logging
 import time
 
-
 def print_log(title: str, content: str, level: int = 2):
     logging.info(time.asctime())
     if level == 0:

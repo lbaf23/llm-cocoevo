@@ -1,8 +1,7 @@
 # CoCoEvo: Co-Evolution of Programs and Test Cases to Enhance Code Generation
 
 
-- Dataset: [LeetCode-Contest](https://huggingface.co/datasets/lbaf23/LeetCode-Contest)
-> Download the `.jsonl` file and put it to `data/leetcode_contest.jsonl`
+> Dataset: Download the `.jsonl` file and put it to `data/leetcode_contest.jsonl`
 
 ### Run
 
@@ -66,15 +65,3 @@ python submit.py \
 
 [baselines](./baselines)
 (AgentCoder, CodeCOT, INTERVENOR)
-
-
-### Citation
-
-```
-@article{li2025cocoevo,
-  title={CoCoEvo: Co-Evolution of Programs and Test Cases to Enhance Code Generation},
-  author={Li, Kefan and Yu, Hongyue and Guo, Tingyu and Cao, Shijie and Yuan, Yuan},
-  journal={arXiv preprint arXiv:2502.10802},
-  year={2025}
-}
-```

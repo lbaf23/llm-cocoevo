@@ -1,5 +1,6 @@
 openai
 tqdm
 transformers
-ipython
 black
+Levenshtein
+sortedcontainers
