@@ -174,11 +174,6 @@ class CoCoEvo:
         self.code_config = self.run_config['code']
         self.test_config = self.run_config['test']
 
-        self.init_config = self.run_config['init']
-        self.use_random_prompt = self.init_config['use_random_prompt'] if self.init_config.__contains__('use_random_prompt') else False
-        self.code_init_generations = self.init_config['code_init_generations']
-        self.test_init_generations = self.init_config['test_init_generations']
-
         self.code_population_nums = self.code_config['population_nums']
 
         self.total_tokens_count = []
@@ -187,12 +182,12 @@ class CoCoEvo:
         self.scheduler_config = self.code_config['scheduler']
 
         self.iterator_rounds = int(self.code_config['max_generations'] / self.code_population_nums)
-        total_gens = self.init_config['code_init_generations']
 
         self.code_crossover_nums = []
         self.code_mutation_nums = []
 
         ir = 1
+        total_gens = self.code_population_nums
         while total_gens < self.code_config['max_generations']:
             if self.scheduler_config['func'] == 'cosine':
                 crossover_rate = cosine_annealing_scheduler(
@@ -214,10 +209,9 @@ class CoCoEvo:
             total_gens += self.code_population_nums
             ir += 1
 
-        self.test_calls = [self.init_config['test_init_generations']] + \
-            [self.test_config['offspring']['generations'] for _ in range(self.iterator_rounds - 1)]
+        self.test_calls = [1 for _ in range(self.iterator_rounds)]
 
-        assert sum(self.code_crossover_nums) + sum(self.code_mutation_nums) + self.code_init_generations == self.code_config['max_generations'], f'''code_calls: {self.code_calls}, sum: {sum(self.code_calls)}'''
+        assert sum(self.code_crossover_nums) + sum(self.code_mutation_nums) + self.code_population_nums == self.code_config['max_generations'], f'''code_calls: {self.code_calls}, sum: {sum(self.code_calls)}'''
         assert sum(self.test_calls) == self.test_config['max_generations'], f'''test_calls: {self.test_calls}, sum: {sum(self.test_calls)}'''
 
         print(f'''\
@@ -225,9 +219,7 @@ class CoCoEvo:
 population_nums: {self.code_population_nums}
 max_generations: {self.code_config['max_generations']}
 iterator_rounds: {self.iterator_rounds}
-use_random_prompt: {self.use_random_prompt}
 
-init: {self.code_init_generations}
 crossover: {self.code_crossover_nums}
 mutation: {self.code_mutation_nums}
 
@@ -386,13 +378,9 @@ max_generations: {self.test_config['max_generations']}
         self.code_population = []
         self.test_population = []
 
-        # init_method = self.init_config['method']
-        code_init_generations = self.init_config['code_init_generations']
-        test_init_generations = self.init_config['test_init_generations']
-
         # init code population
         self.code_offspring = []
-        for _ in range(code_init_generations):
+        for _ in range(self.code_population_nums):
             if self.should_return():
                 break
 
@@ -400,7 +388,7 @@ max_generations: {self.test_config['max_generations']}
                 prompt=self.prompt,
                 env_type=self.env_type,
                 data_args=self.data_args,
-                init_method='random_prompt' if self.use_random_prompt else 'default',
+                init_method='random_prompt',
                 max_tokens=self.code_config['max_tokens'],
                 temperature=self.code_config['temperature']
             )
@@ -418,35 +406,20 @@ max_generations: {self.test_config['max_generations']}
         self.update_code_population()
 
         self.test_offspring = []
-        for _ in range(test_init_generations):
-            if len(self.test_offspring) == 0:
-                gen = test_generator.generate_population(
-                    prompt=self.prompt,
-                    entry_point=self.entry_point,
-                    env_type=self.env_type,
-                    data_args=self.data_args,
-                    generate_mode='random',
-                    max_tests_per_generation=self.test_config['max_tests_per_generation'],
-                    max_tokens=self.test_config['max_tokens'],
-                    temperature=self.test_config['temperature']
-                )
-            else:
-                gen = test_generator.generate_population(
-                    prompt=self.prompt,
-                    entry_point=self.entry_point,
-                    env_type=self.env_type,
-                    data_args=self.data_args,
-                    generate_mode='population',
-                    existing_tests=self.test_offspring,
-                    max_tests_per_generation=self.test_config['max_tests_per_generation'],
-                    max_feedback_tests=self.test_config['offspring']['max_feedback_tests'],
-                    max_tokens=self.test_config['max_tokens'],
-                    temperature=self.test_config['temperature']
-                )
-            self.test_offspring += gen['tests']
+        gen = test_generator.generate_population(
+            prompt=self.prompt,
+            entry_point=self.entry_point,
+            env_type=self.env_type,
+            data_args=self.data_args,
+            generate_mode='random',
+            max_tests_per_generation=self.test_config['max_tests_per_generation'],
+            max_tokens=self.test_config['max_tokens'],
+            temperature=self.test_config['temperature']
+        )
+        self.test_offspring = gen['tests']
 
-            # count tokens
-            self.total_tokens_count.append(gen['tokens_count'])
+        # count tokens
+        self.total_tokens_count.append(gen['tokens_count'])
 
         self.update_test_population()
         self.update_fitness(update_codes=True, update_tests=False)
@@ -531,7 +504,6 @@ max_generations: {self.test_config['max_generations']}
         self.test_offspring = []
 
         offspring_config = self.test_config['offspring']
-        generations = offspring_config['generations']
 
         # make test feedback
         existing_tests = [t['test'] for t in self.test_population]
@@ -547,25 +519,25 @@ max_generations: {self.test_config['max_generations']}
                 total_time_limit=self.total_time_limit
             )
             program_feedback = cov['feedback']
-        for _ in range(generations):
-            # generate test offspring
-            gen = test_generator.generate_population(
-                prompt=self.prompt,
-                entry_point=self.entry_point,
-                env_type=self.env_type,
-                data_args=self.data_args,
-                existing_tests=existing_tests,
-                generate_mode=offspring_config['method'],
-                max_tests_per_generation=self.test_config['max_tests_per_generation'],
-                max_feedback_tests=offspring_config['max_feedback_tests'],
-                program_feedback=program_feedback,
-                max_tokens=self.test_config['max_tokens'],
-                temperature=self.test_config['temperature']
-            )
-            self.test_offspring += gen['tests']
 
-            # count tokens
-            self.total_tokens_count.append(gen['tokens_count'])
+        # generate test offspring
+        gen = test_generator.generate_population(
+            prompt=self.prompt,
+            entry_point=self.entry_point,
+            env_type=self.env_type,
+            data_args=self.data_args,
+            existing_tests=existing_tests,
+            generate_mode=offspring_config['method'],
+            max_tests_per_generation=self.test_config['max_tests_per_generation'],
+            max_feedback_tests=offspring_config['max_feedback_tests'],
+            program_feedback=program_feedback,
+            max_tokens=self.test_config['max_tokens'],
+            temperature=self.test_config['temperature']
+        )
+        self.test_offspring += gen['tests']
+
+        # count tokens
+        self.total_tokens_count.append(gen['tokens_count'])
 
     def update_test_population(self) -> None:
         tests_set = set()

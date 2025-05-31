@@ -60,14 +60,7 @@
         "max_tokens": 1024,
         "temperature": 0.8
     },
-
     "coevod": {
-        "init": {
-            "use_random_prompt": true,
-            "method": "codet_sqrt",
-            "code_init_generations": 10,
-            "test_init_generations": 1
-        },
         "code": {
             "population_nums": 10,
             "max_generations": 100,
@@ -102,7 +95,6 @@
             "temperature": 0.8,
             "offspring": {
                 "method": "population_and_feedback",
-                "generations": 1,
                 "max_feedback_tests": 50
             }
         }
@@ -125,7 +117,6 @@
         "selection": {
             "selection_algo": "greedy"
         },
-        "init_method": "random_prompt",
         "max_tokens": 1024,
         "temperature": 0.8,
         "test": {
@@ -134,7 +125,6 @@
             "max_tests_per_generation": 10
         }
     },
-
     "result_dir": "result/leetcode_contest/llama-3.1-70b",
     "log_dir": "logs/leetcode_contest/llama-3.1-70b"
 }

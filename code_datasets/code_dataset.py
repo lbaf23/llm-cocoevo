@@ -65,20 +65,5 @@ class CodeDataset:
                     'context_test_program': d['context_test_program'],
                 }
             }
-        elif self.name == 'real_world_method':
-            return {
-                'index': d['index'],
-                'prompt': d['prompt_code'],
-                'entry_point': d['entry_point'],
-                'solution': d['solution'],
-                'tests': d['tests'],
-                'data_args': {
-                    'entry_point': d['entry_point'],
-                    'program': d['program'],
-                    'start_line': d['start_line'],
-                    'end_line': d['end_line'],
-                    'test_prefix': d['test_prefix']
-                }
-            }
         else:
             raise NotImplementedError(f'self.name={self.name}')

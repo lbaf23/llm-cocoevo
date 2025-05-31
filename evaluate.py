@@ -9,7 +9,7 @@ if __name__ == '__main__':
     parser.add_argument('--dataset_file', type=str, default='data/leetcode_contest.jsonl')
     parser.add_argument('--env_type', type=str, default='func')
     parser.add_argument('--num_process', type=int, default=5)
-    parser.add_argument('--total_time_limit', type=int, default=2)  # 2 for leetcode_contest
+    parser.add_argument('--total_time_limit', type=int, default=2)
     parser.add_argument('--start', type=int, default=0)
     parser.add_argument('--end', type=int, default=-1)
     args = parser.parse_args()

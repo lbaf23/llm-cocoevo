@@ -206,16 +206,6 @@ def test_xxx():
             temperature: float = 0.8,
     ) -> Dict[str, Any]:
         system_prompt = get_test_system_prompt('generation', env_type)
-
-
-#         system_prompt = '''\
-# You are an expert Python test programmer.
-# Your task is to write test cases for a given function based on its signature and docstring.
-#  - Each test case should include one line of assert statement, do not define classes or functions.
-#  - Add a line of brief comment before each test case explaining its purpose.
-#  - Do not numbering the test cases.
-# Provide the test cases in a Python code block.'''
-
         user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.test_cases}

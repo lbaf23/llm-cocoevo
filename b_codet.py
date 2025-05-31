@@ -4,7 +4,7 @@ CodeT
 """
 
 from code_evaluator import evaluate_code
-from typing import Tuple, List, Dict, Any
+from typing import List, Dict, Any
 from utils import write_jsonl, get_unique_tests, get_codes, create_dirs
 from running_utils import load_env
 from tqdm import tqdm

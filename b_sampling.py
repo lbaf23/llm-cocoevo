@@ -1,6 +1,5 @@
 from generators import CodeGenerator
-from typing import Tuple, List
-from utils import append_jsonl, read_jsonl, print_log, create_or_clear_file, init_log
+from utils import append_jsonl, read_jsonl, create_or_clear_file, init_log
 from tqdm import tqdm
 from typing import Dict
 from running_utils import load_env
@@ -44,6 +43,7 @@ def Sampling(
         gen = code_generator.generate(
             prompt=prompt,
             env_type=env_type,
+            init_method='default',
             data_args=data_args,
             max_tokens=max_tokens,
             temperature=temperature

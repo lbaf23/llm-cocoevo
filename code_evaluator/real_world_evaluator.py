@@ -122,12 +122,6 @@ def evaluate_real_world(
     )
     pool_res.get()
 
-    # try:
-    #     pool_res.get()
-    # except Exception:
-    #     pool.terminate()
-    #     pool.join()
-
     results = {}
     while not q.empty():
         res = q.get(False)

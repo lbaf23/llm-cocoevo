@@ -57,7 +57,7 @@ Implement the function with a `# TODO` sign. Only write the target function that
             prompt: str,
             env_type: str,
             data_args: Dict[str, Any],
-            init_method: str = 'default',
+            init_method: str = 'random_prompt',
             max_tokens: int = 1024,
             temperature: float = 0.8,
     ) -> Dict:

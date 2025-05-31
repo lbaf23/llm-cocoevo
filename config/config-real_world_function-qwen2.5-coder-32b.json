@@ -64,12 +64,6 @@
     },
 
     "coevod": {
-        "init": {
-            "use_random_prompt": true,
-            "method": "codet_sqrt",
-            "code_init_generations": 10,
-            "test_init_generations": 1
-        },
         "code": {
             "population_nums": 10,
             "max_generations": 100,
@@ -104,7 +98,6 @@
             "temperature": 0.8,
             "offspring": {
                 "method": "population_and_feedback",
-                "generations": 1,
                 "max_feedback_tests": 50
             }
         }

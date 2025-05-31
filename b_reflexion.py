@@ -5,8 +5,8 @@ Reflexion
 
 from generators import CodeGenerator
 from code_evaluator import evaluate_code
-from typing import Dict, List, Any
-from utils import read_jsonl, append_jsonl, print_log, create_or_clear_file, write_jsonl, get_unique_tests, get_codes, \
+from typing import Dict, List
+from utils import read_jsonl, append_jsonl, create_or_clear_file, write_jsonl, get_unique_tests, get_codes, \
     create_dirs, init_log
 from tqdm import tqdm
 import os
@@ -61,6 +61,7 @@ def Reflexion(
             gen = code_generator.generate(
                 prompt=prompt,
                 env_type=env_type,
+                init_method='default',
                 data_args=data_args,
                 max_tokens=max_tokens,
                 temperature=temperature
