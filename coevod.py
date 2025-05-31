@@ -669,7 +669,7 @@ if __name__ == '__main__':
     config = env['config']
     run_type = env['run_type']
 
-    assert run_type.startswith('coevod'), f'run_type {run_type} does not start with coevod'
+    assert run_type.startswith('coevo'), f'run_type {run_type} does not start with coevo'
 
     create_dirs(result_dir)
     create_dirs(log_dir)

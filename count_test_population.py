@@ -7,7 +7,7 @@ from code_datasets import  CodeDataset
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument('--result_dir', type=str, default='result/leetcode_contest/qwen2.5-coder-32b/coevod_5')
+    parser.add_argument('--result_dir', type=str, default='result/leetcode_contest/qwen2.5-coder-32b/coevod')
     parser.add_argument('--env_type', type=str, default='func')
     parser.add_argument('--its', type=int, default=10)
     args = parser.parse_args()

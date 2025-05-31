@@ -13,7 +13,7 @@ if __name__ == '__main__':
         'reflexion',
         'mbr_exec',
         'codet',
-        'coevod_5'
+        'coevod'
     ])
     parser.add_argument('--suffix_list', nargs='+', default=['-1', '-2', '-3', '-4', '-5'])
     parser.add_argument('--detailed', action='store_true')
@@ -31,7 +31,7 @@ if __name__ == '__main__':
         detailed_pass_rate = [0, 0, 0]
         detailed_passed_count = [0, 0, 0]
         for suffix in suffix_list:
-            if (run_type.startswith('coevod') or run_type.startswith('evolutiond')) and os.path.exists(os.path.join(result_dir, run_type, f'results_code_population{suffix}.json')):
+            if (run_type.startswith('coevo') or run_type.startswith('evolution')) and os.path.exists(os.path.join(result_dir, run_type, f'results_code_population{suffix}.json')):
                 file_path = os.path.join(result_dir, run_type, f'results_code_population{suffix}.json')
                 content = read_json(file_path)
                 if not content.__contains__('pass_rate'):

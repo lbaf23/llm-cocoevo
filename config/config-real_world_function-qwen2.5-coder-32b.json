@@ -62,8 +62,7 @@
         "max_tokens": 1024,
         "temperature": 0.2
     },
-
-    "coevod": {
+    "coevo": {
         "code": {
             "population_nums": 10,
             "max_generations": 100,

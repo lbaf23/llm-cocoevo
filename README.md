@@ -3,13 +3,15 @@
 
 > Dataset: Download the `.jsonl` file and put it to `data/leetcode_contest.jsonl`
 
-### Run
+
+## Run
+
+### Generation
 
 - Run {run_type}
 
 ```bash
-# run sampling
-python {run_type}.py \
+python {file_name} \
 --config 'config/config-leetcode-contest-qwen2.5-coder-32b.json' \
 --run_type {run_type} \
 --api_key 'xxx' \
@@ -25,25 +27,44 @@ python {run_type}.py \
 
 - run_type
 
-| Method                                 | run_type           | Require LLM (api_key and base_url) |
-|----------------------------------------|--------------------|------------------------------------|
-| Sampling                               | sampling           | y                                  |
-| Sampling+Filtering                     | sampling_filtering | n                                  |
-| Gen_tests                              | gen_tests          | y                                  |
-| CodeT                                  | codet              | n                                  |
-| MBR_Exec                               | mbr_exec           | n                                  |
-| Self_repair                            | self_repair        | y                                  |
-| Reflexion                              | reflexion          | y                                  |
-| CoCoEvo                                | coevod             | y                                  |
-| Evolution (CoCoEvo w/o test evolution) | evolutiond         | y                                  |
+| Method                                 | file_name               | run_type           |
+|----------------------------------------|-------------------------|--------------------|
+| Sampling                               | b_sampling.py           | sampling           |
+| Sampling+Filtering                     | b_sampling_filtering.py | sampling_filtering |
+| Gen_tests                              | b_gen_tests.py          | gen_tests          |
+| CodeT                                  | b_codet.py              | codet              |
+| MBR_Exec                               | b_mbr_exec.py           | mbr_exec           |
+| Self_repair                            | b_self_repair.py        | self_repair        |
+| Reflexion                              | b_reflexion             | reflexion          |
+| CoCoEvo                                | coevod.py               | coevo              |
+| Evolution (CoCoEvo w/o test evolution) | evolutiond.py           | evolution          |
 
 
+- Run CoCoEvo
 
-- Gen_tests
+```bash
+python coevod.py \
+--config 'config/config-leetcode-contest-qwen2.5-coder-32b.json' \
+--run_type 'coevo' \
+--api_key 'xxx' \
+--base_url 'xxx'
+```
+
+
+### Evaluation
+
+- Evaluate CoCoEvo / Evolution
+
+```bash
+python count_code_population.py \
+result_dir 'result/leetcode_contest/qwen2.5-coder-32b/coevod'
+```
+
+- Evaluate generated test cases
 
 ```bash
 # evaluate generated tests
-python gen_tests_eval.py \
+python b_gen_tests_eval.py \
 --config 'config/config-leetcode-contest-qwen2.5-coder-32b.json' \
 --run_type 'gen_tests_eval'
 
@@ -51,7 +72,7 @@ python gen_tests_eval.py \
 python show_tests.py --result_dir='result/leetcode_contest/qwen2.5-coder-32b' --run_type='gen_tests_eval'
 ```
 
-- For other methods, submit {run_type} to private tests
+- For other methods, use submit.py
 
 ```bash
 # submit to private tests
