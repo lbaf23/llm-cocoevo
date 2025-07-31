@@ -86,3 +86,19 @@ python submit.py \
 
 [baselines](./baselines)
 (AgentCoder, CodeCOT, INTERVENOR)
+
+
+## Citation
+
+```
+@ARTICLE{11098743,
+  author={Li, Kefan and Yuan, Yuan and Yu, Hongyue and Guo, Tingyu and Cao, Shijie},
+  journal={IEEE Transactions on Evolutionary Computation}, 
+  title={CoCoEvo: Co-Evolution of Programs and Test Cases to Enhance Code Generation}, 
+  year={2025},
+  volume={},
+  number={},
+  pages={1-1},
+  keywords={Codes;Accuracy;Maintenance engineering;Evolutionary computation;Electronic mail;Software development management;Programming;Dynamic scheduling;Computer bugs;Training;Large Language Models;Code Generation;Test Case Generation;Co-Evolution},
+  doi={10.1109/TEVC.2025.3593272}}
+```
