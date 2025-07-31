@@ -384,7 +384,7 @@ max_generations: {self.test_config['max_generations']}
             if self.should_return():
                 break
 
-            gen = code_generator.generate(
+            gen = self.code_generator.generate(
                 prompt=self.prompt,
                 env_type=self.env_type,
                 data_args=self.data_args,
@@ -406,7 +406,7 @@ max_generations: {self.test_config['max_generations']}
         self.update_code_population()
 
         self.test_offspring = []
-        gen = test_generator.generate_population(
+        gen = self.test_generator.generate_population(
             prompt=self.prompt,
             entry_point=self.entry_point,
             env_type=self.env_type,
@@ -441,7 +441,7 @@ max_generations: {self.test_config['max_generations']}
             parent1 = self.code_population[parents_index[0]]
             parent2 = self.code_population[parents_index[1]]
 
-            gen = code_generator.generate_crossover(
+            gen = self.code_generator.generate_crossover(
                 prompt=self.prompt,
                 code1=parent1['code'],
                 code2=parent2['code'],
@@ -478,7 +478,7 @@ max_generations: {self.test_config['max_generations']}
                 break
 
             parent = self.code_population[p_index]
-            gen = code_generator.generate_mutation(
+            gen = self.code_generator.generate_mutation(
                 prompt=self.prompt,
                 code=parent['code'],
                 env_type=self.env_type,
@@ -521,7 +521,7 @@ max_generations: {self.test_config['max_generations']}
             program_feedback = cov['feedback']
 
         # generate test offspring
-        gen = test_generator.generate_population(
+        gen = self.test_generator.generate_population(
             prompt=self.prompt,
             entry_point=self.entry_point,
             env_type=self.env_type,

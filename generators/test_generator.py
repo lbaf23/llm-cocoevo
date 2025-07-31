@@ -246,22 +246,6 @@ def test_xxx():
             temperature: float = 0.8
     ) -> Dict[str, Any]:
         system_prompt = get_test_system_prompt('population', env_type)
-
-
-#         system_prompt = '''\
-# You are an expert Python test programmer.
-# You will be provided with:
-# 1. A function signature and its docstring.
-# 2. Some pre-written test cases.
-#
-# Your task:
-#
-# 1. Identify edge cases that have not included (2-3 sentences). Focus on gaps in logic or unusual scenarios.
-# 2. Write 10+ unique test cases in a Python code block:
-#  - Follow the docstring constraints.
-#  - Use one-line assert statements, each with a brief comment, do not define classes or functions.
-#  - Do not repeat existing test cases.'''
-
         # remove duplicated
         existing_tests = list(set(existing_tests))
         if max_feedback_tests > 0 and len(existing_tests) > max_feedback_tests:
@@ -313,27 +297,6 @@ def test_xxx():
             temperature: float = 0.8
     ) -> Dict[str, Any]:
         system_prompt = get_test_system_prompt('population_and_feedback', env_type)
-
-
-#         system_prompt = '''\
-# You are an expert Python test programmer.
-# You will be provided with:
-# 1. A function signature and its docstring.
-# 2. Some pre-written test cases.
-# 3. An example implementation of the program.
-# 4. A coverage report of the existing test cases, where [+] indicates covered lines and [-] indicates uncovered lines.
-#
-# Your task:
-#
-# 1. Identify potential problems or edge cases in the program (2-3 sentences). Focus on gaps in logic or unusual scenarios.
-# 2. Write 10+ unique test cases in a Python code block:
-#  - Follow the docstring constraints.
-#  - Use one-line assert statements, each with a brief comment, do not define classes or functions.
-#  - Do not repeat existing test cases.
-#  - Address uncovered lines and missing edge cases.
-#
-# Focus on finding untested issues and expanding coverage.'''
-
         # remove duplicated
         existing_tests = list(set(existing_tests))
         if max_feedback_tests > 0 and len(existing_tests) > max_feedback_tests:
@@ -386,24 +349,6 @@ def test_xxx():
             temperature: float = 0.8
     ) -> Dict[str, Any]:
         system_prompt = get_test_system_prompt('feedback', env_type)
-
-#         system_prompt = '''\
-# You are an expert Python test programmer.
-# You will be provided with:
-# 1. A function signature and its docstring.
-# 2. An example implementation of the program.
-# 3. A coverage report of the existing test cases, where [+] indicates covered lines and [-] indicates uncovered lines.
-#
-# Your task:
-#
-# 1. Identify potential problems or edge cases in the program (2-3 sentences). Focus on gaps in logic or unusual scenarios.
-# 2. Write 10+ unique test cases in a Python code block:
-#  - Follow the docstring constraints.
-#  - Use one-line assert statements, each with a brief comment, do not define classes or functions.
-#  - Address uncovered lines and missing edge cases.
-#
-# Focus on finding untested issues and expanding coverage.'''
-
         user_prompt = self.make_prefix_prompt(env_type, prompt, data_args) + f'''
 
 {self.example_program_and_coverage}

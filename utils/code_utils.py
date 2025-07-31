@@ -312,7 +312,6 @@ def remove_comments(code_str: str) -> str:
 def format_code(code: str, lang: str = 'python', mode: str = 'soft') -> str:
     if lang == 'python':
         if mode == 'hard':
-            # code = remove_comments(code)
             code = ast.unparse(ast.parse(code))
         code = black.format_str(code, mode=black.Mode(line_length=100000))
         code = code.strip()
