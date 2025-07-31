@@ -1,7 +1,7 @@
 # CoCoEvo: Co-Evolution of Programs and Test Cases to Enhance Code Generation
 
 
-> Dataset: Download the `.jsonl` file and put it to `data/leetcode_contest.jsonl`
+> Dataset: Download the `test.jsonl` file [here](https://huggingface.co/datasets/lbaf23/LeetCode-Contest/tree/main) and put it to `data/leetcode_contest.jsonl`.
 
 
 ## Run
